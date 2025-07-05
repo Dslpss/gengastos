@@ -8,6 +8,7 @@ import {
 import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "./stores/authStore";
 import { supabase } from "./lib/supabase";
+import { apiService } from "./lib/supabaseApi";
 import Layout from "./components/layout/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -38,6 +39,16 @@ function App() {
             updated_at: session.user.updated_at || new Date().toISOString(),
           };
           setUser(userForStore);
+
+          // Criar categorias padrão se necessário
+          try {
+            await apiService.createDefaultCategories();
+          } catch (error) {
+            console.log(
+              "Categorias padrão já existem ou erro ao criar:",
+              error
+            );
+          }
         } else {
           setUser(null);
         }
@@ -64,6 +75,13 @@ function App() {
           updated_at: session.user.updated_at || new Date().toISOString(),
         };
         setUser(userForStore);
+
+        // Criar categorias padrão se necessário
+        try {
+          await apiService.createDefaultCategories();
+        } catch (error) {
+          console.log("Categorias padrão já existem ou erro ao criar:", error);
+        }
       } else {
         setUser(null);
       }
