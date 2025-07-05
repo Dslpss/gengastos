@@ -7,6 +7,7 @@ import LoadingSpinner from "../components/ui/LoadingSpinner";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const { setUser } = useAuthStore();
@@ -17,6 +18,20 @@ export default function Login() {
 
     try {
       if (isSignUp) {
+        // Validar se as senhas coincidem
+        if (password !== confirmPassword) {
+          toast.error("As senhas não coincidem");
+          setIsLoading(false);
+          return;
+        }
+
+        // Validar senha mínima
+        if (password.length < 6) {
+          toast.error("A senha deve ter pelo menos 6 caracteres");
+          setIsLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -26,7 +41,14 @@ export default function Login() {
 
         if (data.user) {
           toast.success("Conta criada com sucesso! Verifique seu email.");
-          setUser(data.user);
+          // Converter o user do Supabase para nosso tipo User
+          const userForStore = {
+            id: data.user.id,
+            email: data.user.email || "",
+            created_at: data.user.created_at || new Date().toISOString(),
+            updated_at: data.user.updated_at || new Date().toISOString(),
+          };
+          setUser(userForStore);
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -38,7 +60,14 @@ export default function Login() {
 
         if (data.user) {
           toast.success("Login realizado com sucesso!");
-          setUser(data.user);
+          // Converter o user do Supabase para nosso tipo User
+          const userForStore = {
+            id: data.user.id,
+            email: data.user.email || "",
+            created_at: data.user.created_at || new Date().toISOString(),
+            updated_at: data.user.updated_at || new Date().toISOString(),
+          };
+          setUser(userForStore);
         }
       }
     } catch (error: any) {
@@ -93,7 +122,52 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              {isSignUp && password && (
+                <div className="mt-1 text-sm">
+                  <p
+                    className={
+                      password.length >= 6 ? "text-green-600" : "text-red-600"
+                    }
+                  >
+                    {password.length >= 6 ? "✓" : "✗"} Mínimo de 6 caracteres
+                  </p>
+                </div>
+              )}
             </div>
+
+            {isSignUp && (
+              <div>
+                <label htmlFor="confirmPassword" className="form-label">
+                  Confirmar Senha
+                </label>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  className={`form-input ${
+                    confirmPassword && password !== confirmPassword
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : confirmPassword && password === confirmPassword
+                      ? "border-green-500 focus:border-green-500 focus:ring-green-500"
+                      : ""
+                  }`}
+                  placeholder="Confirme sua senha"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+                {confirmPassword && password !== confirmPassword && (
+                  <p className="mt-1 text-sm text-red-600">
+                    As senhas não coincidem
+                  </p>
+                )}
+                {confirmPassword && password === confirmPassword && (
+                  <p className="mt-1 text-sm text-green-600">
+                    Senhas coincidem ✓
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
