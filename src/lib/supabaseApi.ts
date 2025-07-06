@@ -38,6 +38,19 @@ export interface Budget {
   category?: Category;
 }
 
+export interface UserSettings {
+  id: string;
+  user_id: string;
+  salary: number;
+  bonus_balance: number;
+  investment_balance: number;
+  sales_balance: number;
+  other_balance: number;
+  total_extra_balance: number;
+  created_at: string;
+  updated_at: string;
+}
+
 class SupabaseApiService {
   private async getCurrentUser(): Promise<User> {
     const {
@@ -48,6 +61,162 @@ class SupabaseApiService {
       throw new Error("Usuário não autenticado");
     }
     return user;
+  }
+
+  // User Settings
+  async getUserSettings(): Promise<UserSettings | null> {
+    try {
+      const user = await this.getCurrentUser();
+
+      // Primeiro, tenta buscar as configurações existentes
+      const { data, error } = await supabase
+        .from("user_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle(); // Use maybeSingle() ao invés de single()
+
+      if (error) {
+        console.error("Erro ao buscar configurações:", error);
+        return null;
+      }
+
+      // Se não encontrou configurações, retorna null
+      // Não tenta criar automaticamente aqui para evitar conflitos
+      return data;
+    } catch (err) {
+      console.error("Erro ao processar getUserSettings:", err);
+      return null;
+    }
+  }
+
+  async upsertUserSettings(salary: number): Promise<UserSettings | null> {
+    try {
+      const user = await this.getCurrentUser();
+
+      // Usar upsert com merge para evitar conflitos
+      const { data, error } = await supabase
+        .from("user_settings")
+        .upsert(
+          {
+            user_id: user.id,
+            salary,
+          },
+          {
+            onConflict: "user_id",
+            ignoreDuplicates: false,
+          }
+        )
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Erro ao criar/atualizar configurações:", error);
+        return null;
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Erro ao processar upsertUserSettings:", err);
+      return null;
+    }
+  }
+
+  async updateExtraBalances(balances: {
+    bonus_balance?: number;
+    investment_balance?: number;
+    sales_balance?: number;
+    other_balance?: number;
+  }): Promise<UserSettings | null> {
+    try {
+      const user = await this.getCurrentUser();
+
+      // Primeiro buscar as configurações existentes
+      const currentSettings = await this.getUserSettings();
+
+      if (!currentSettings) {
+        // Se não existem configurações, criar com os saldos extras
+        const { data, error } = await supabase
+          .from("user_settings")
+          .insert([
+            {
+              user_id: user.id,
+              salary: 0,
+              bonus_balance: balances.bonus_balance || 0,
+              investment_balance: balances.investment_balance || 0,
+              sales_balance: balances.sales_balance || 0,
+              other_balance: balances.other_balance || 0,
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) {
+          console.error(
+            "Erro ao criar configurações com saldos extras:",
+            error
+          );
+          return null;
+        }
+
+        return data;
+      } else {
+        // Atualizar configurações existentes
+        const { data, error } = await supabase
+          .from("user_settings")
+          .update(balances)
+          .eq("user_id", user.id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Erro ao atualizar saldos extras:", error);
+          return null;
+        }
+
+        return data;
+      }
+    } catch (err) {
+      console.error("Erro ao processar updateExtraBalances:", err);
+      return null;
+    }
+  }
+
+  async updateAllUserSettings(settings: {
+    salary?: number;
+    bonus_balance?: number;
+    investment_balance?: number;
+    sales_balance?: number;
+    other_balance?: number;
+  }): Promise<UserSettings | null> {
+    try {
+      const user = await this.getCurrentUser();
+
+      // Usar upsert para criar ou atualizar
+      const { data, error } = await supabase
+        .from("user_settings")
+        .upsert(
+          {
+            user_id: user.id,
+            ...settings,
+          },
+          {
+            onConflict: "user_id",
+            ignoreDuplicates: false,
+          }
+        )
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Erro ao criar/atualizar todas as configurações:", error);
+        return null;
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Erro ao processar updateAllUserSettings:", err);
+      return null;
+    }
   }
 
   // Categories

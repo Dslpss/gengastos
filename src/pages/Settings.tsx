@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../stores/authStore";
-import { apiService, type Category } from "../lib/supabaseApi";
+import {
+  apiService,
+  type Category,
+  type UserSettings,
+} from "../lib/supabaseApi";
 import {
   User,
   Settings as SettingsIcon,
@@ -9,6 +13,7 @@ import {
   Edit3,
 } from "lucide-react";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
+import ExtraBalanceManager from "../components/ExtraBalanceManager";
 import toast from "react-hot-toast";
 
 export default function Settings() {
@@ -17,6 +22,12 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+  // Salário/Saldo Inicial
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+  const [salaryInput, setSalaryInput] = useState("");
+  const [salaryLoading, setSalaryLoading] = useState(false);
+  const [salaryEditMode, setSalaryEditMode] = useState(false);
 
   // Form states
   const [categoryForm, setCategoryForm] = useState({
@@ -61,7 +72,41 @@ export default function Settings() {
 
   useEffect(() => {
     loadCategories();
+    loadUserSettings();
   }, []);
+
+  const loadUserSettings = async () => {
+    try {
+      setSalaryLoading(true);
+      const settings = await apiService.getUserSettings();
+      setUserSettings(settings);
+      setSalaryInput(settings ? String(settings.salary) : "");
+    } catch (error: any) {
+      toast.error("Erro ao carregar salário/saldo inicial");
+    } finally {
+      setSalaryLoading(false);
+    }
+  };
+
+  const handleSaveSalary = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSalaryLoading(true);
+      const value = parseFloat(salaryInput.replace(/,/g, "."));
+      if (isNaN(value) || value < 0) {
+        toast.error("Informe um valor válido para o salário/saldo.");
+        return;
+      }
+      const saved = await apiService.upsertUserSettings(value);
+      setUserSettings(saved);
+      setSalaryEditMode(false);
+      toast.success("Salário/saldo salvo com sucesso!");
+    } catch (error: any) {
+      toast.error("Erro ao salvar salário/saldo inicial");
+    } finally {
+      setSalaryLoading(false);
+    }
+  };
 
   const loadCategories = async () => {
     try {
@@ -157,6 +202,87 @@ export default function Settings() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>
+      </div>
+
+      {/* Salário/Saldo Inicial */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Salário / Saldo Inicial
+          </h3>
+        </div>
+        <div className="p-6">
+          {salaryLoading ? (
+            <LoadingSpinner />
+          ) : salaryEditMode ? (
+            <form
+              onSubmit={handleSaveSalary}
+              className="flex items-center space-x-3"
+            >
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className="form-input w-40"
+                value={salaryInput}
+                onChange={(e) => setSalaryInput(e.target.value)}
+                placeholder="Ex: 3500.00"
+                autoFocus
+              />
+              <button type="submit" className="btn btn-primary">
+                Salvar
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setSalaryEditMode(false);
+                  setSalaryInput(
+                    userSettings ? String(userSettings.salary) : ""
+                  );
+                }}
+              >
+                Cancelar
+              </button>
+            </form>
+          ) : (
+            <div className="flex items-center space-x-4">
+              <span className="text-lg font-medium text-gray-900">
+                {userSettings
+                  ? userSettings.salary.toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })
+                  : "Não cadastrado"}
+              </span>
+              <button
+                className="btn btn-primary"
+                onClick={() => setSalaryEditMode(true)}
+              >
+                {userSettings ? "Editar" : "Cadastrar"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Saldos Extras */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Gerenciar Saldos Extras
+          </h3>
+          <p className="text-sm text-gray-600 mt-1">
+            Adicione e gerencie seus saldos extras como bonificações,
+            investimentos e vendas
+          </p>
+        </div>
+        <div className="p-6">
+          <ExtraBalanceManager
+            userSettings={userSettings}
+            onUpdate={setUserSettings}
+          />
+        </div>
       </div>
 
       {/* User Profile Section */}

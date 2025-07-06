@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
+import { apiService, type UserSettings } from "../lib/supabaseApi";
 import { TrendingUp, TrendingDown, DollarSign, Activity } from "lucide-react";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import toast from "react-hot-toast";
@@ -25,8 +26,8 @@ interface Summary {
 }
 
 export default function Dashboard() {
+  // Estados
   const [summary, setSummary] = useState<Summary>(() => {
-    // Tentar recuperar dados do localStorage
     const savedSummary = localStorage.getItem("dashboard_summary");
     return savedSummary
       ? JSON.parse(savedSummary)
@@ -39,9 +40,12 @@ export default function Dashboard() {
         };
   });
 
+  // Salário/Saldo Inicial
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+  const [salaryLoading, setSalaryLoading] = useState(true);
+
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>(
     () => {
-      // Tentar recuperar dados do localStorage
       const savedTransactions = localStorage.getItem("recent_transactions");
       return savedTransactions ? JSON.parse(savedTransactions) : [];
     }
@@ -71,199 +75,174 @@ export default function Dashboard() {
     []
   );
 
-  const loadDashboardData = useCallback(
-    async (isRetry = false) => {
-      console.log("Iniciando loadDashboardData");
-      try {
-        if (!isRetry) {
-          setLoading(true);
-        }
-        setError(null);
+  const loadUserSettings = useCallback(async () => {
+    try {
+      setSalaryLoading(true);
+      let settings = await apiService.getUserSettings();
 
-        // Verificar se o usuário está logado
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-        console.log("Resultado getSession:", session, sessionError);
-
-        if (sessionError) {
-          throw new Error("Erro de autenticação: " + sessionError.message);
-        }
-
-        if (!session?.user) {
-          setLoading(false);
-          setError("Sessão expirada. Faça login novamente.");
-          toast.error("Sessão expirada. Faça login novamente.");
-          return;
-        }
-
-        // Carregar dados com timeout
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout")), 5000)
+      if (!settings) {
+        console.log(
+          "Configurações não encontradas, criando configurações padrão"
         );
+        // Tentar criar configurações padrão
+        settings = await apiService.upsertUserSettings(0);
 
-        const dataPromise = supabase
-          .from("transactions")
-          .select(
-            `
-          id,
-          amount,
-          description,
-          date,
-          type,
-          payment_method,
+        if (!settings) {
+          console.log(
+            "Não foi possível criar configurações, usando valores padrão"
+          );
+          setUserSettings({
+            salary: 0,
+            bonus_balance: 0,
+            investment_balance: 0,
+            sales_balance: 0,
+            other_balance: 0,
+            total_extra_balance: 0,
+            id: "",
+            user_id: "",
+            created_at: "",
+            updated_at: "",
+          });
+        } else {
+          setUserSettings(settings);
+        }
+      } else {
+        setUserSettings(settings);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar configurações do usuário:", err);
+
+      // Verificar se é erro de tabela não encontrada
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (
+        errorMessage.includes("user_settings") &&
+        errorMessage.includes("does not exist")
+      ) {
+        toast.error(
+          "Tabela de configurações não encontrada. Verifique a configuração do banco de dados."
+        );
+      } else {
+        toast.error("Erro ao carregar salário inicial. Usando valor padrão.");
+      }
+
+      setUserSettings({
+        salary: 0,
+        bonus_balance: 0,
+        investment_balance: 0,
+        sales_balance: 0,
+        other_balance: 0,
+        total_extra_balance: 0,
+        id: "",
+        user_id: "",
+        created_at: "",
+        updated_at: "",
+      });
+    } finally {
+      setSalaryLoading(false);
+    }
+  }, []);
+
+  const loadDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data: transactions, error: transactionsError } = await supabase
+        .from("transactions")
+        .select(
+          `
+          *,
           category:categories(name, color, icon)
         `
-          )
-          .eq("user_id", session.user.id)
-          .gte("date", new Date(currentYear, currentMonth - 1, 1).toISOString())
-          .lte("date", new Date(currentYear, currentMonth, 0).toISOString())
-          .order("date", { ascending: false })
-          .limit(5);
+        )
+        .gte(
+          "date",
+          `${currentYear}-${currentMonth.toString().padStart(2, "0")}-01`
+        )
+        .lte(
+          "date",
+          `${currentYear}-${currentMonth.toString().padStart(2, "0")}-31`
+        );
 
-        const response = await Promise.race([dataPromise, timeoutPromise]);
-        const { data: transactions, error: transactionsError } =
-          response as any;
+      if (transactionsError) throw transactionsError;
 
-        if (transactionsError) {
-          throw new Error(
-            "Erro ao carregar transações: " + transactionsError.message
-          );
-        }
+      // Calcular resumo
+      const initialBalance =
+        (userSettings?.salary || 0) + (userSettings?.total_extra_balance || 0);
+      const newSummary = {
+        totalIncome: 0,
+        totalExpenses: 0,
+        balance: initialBalance,
+        transactionCount: transactions?.length || 0,
+        topCategories: [],
+      };
 
-        const allTransactions = transactions || [];
+      const categoryMap = new Map();
 
-        // Calcular resumo
-        const totalIncome = allTransactions
-          .filter((t) => t.type === "income")
-          .reduce((sum, t) => sum + t.amount, 0);
-
-        const totalExpenses = allTransactions
-          .filter((t) => t.type === "expense")
-          .reduce((sum, t) => sum + t.amount, 0);
-
-        const balance = totalIncome - totalExpenses;
-
-        // Calcular top categorias
-        const categoryMap = new Map<
-          string,
-          { amount: number; count: number }
-        >();
-        allTransactions.forEach((transaction) => {
-          const categoryName =
-            (transaction.category as any)?.name || "Sem categoria";
-          const current = categoryMap.get(categoryName) || {
-            amount: 0,
-            count: 0,
-          };
-          categoryMap.set(categoryName, {
-            amount: current.amount + transaction.amount,
-            count: current.count + 1,
-          });
-        });
-
-        const topCategories = Array.from(categoryMap.entries())
-          .map(([category, data]) => ({ category, ...data }))
-          .sort((a, b) => b.amount - a.amount)
-          .slice(0, 5);
-
-        const newSummary = {
-          totalIncome,
-          totalExpenses,
-          balance,
-          transactionCount: allTransactions.length,
-          topCategories,
-        };
-
-        // Converter transações
-        const newTransactions: Transaction[] = allTransactions.map((t) => ({
-          id: t.id,
-          amount: t.amount,
-          description: t.description || "",
-          date: t.date,
-          type: t.type,
-          category_name: (t.category as any)?.name || "Sem categoria",
-          category_color: (t.category as any)?.color || "#6B7280",
-          category_icon: (t.category as any)?.icon || "📝",
-          payment_method: t.payment_method,
-        }));
-
-        // Atualizar estados e persistir dados
-        setSummary(newSummary);
-        setRecentTransactions(newTransactions);
-        persistData(newSummary, newTransactions);
-        setRetryCount(0); // Resetar contagem de tentativas após sucesso
-      } catch (error: any) {
-        console.error("Erro ao carregar dados:", error);
-
-        // Se ainda não atingiu o limite de tentativas, tentar novamente
-        if (!isRetry && retryCount < MAX_RETRIES) {
-          setRetryCount((prev) => prev + 1);
-          console.log(`Tentativa ${retryCount + 1} de ${MAX_RETRIES}...`);
-          setTimeout(() => loadDashboardData(true), 2000 * (retryCount + 1));
-          return;
-        }
-
-        // Mostrar erro apropriado após todas as tentativas
-        if (error.message?.includes("Timeout")) {
-          setError(
-            "Conexão lenta. Os últimos dados salvos estão sendo exibidos."
-          );
-          toast.error(
-            "Problemas de conexão. Dados podem estar desatualizados."
-          );
-        } else if (error.message?.includes("não autenticado")) {
-          setError("Sessão expirada. Faça login novamente.");
-          toast.error("Sessão expirada. Faça login novamente.");
+      transactions?.forEach((transaction: Transaction) => {
+        if (transaction.type === "income") {
+          newSummary.totalIncome += transaction.amount;
+          newSummary.balance += transaction.amount;
         } else {
-          setError("Erro ao atualizar dados. Mostrando últimos dados salvos.");
-          toast.error("Erro ao atualizar dados. Tente novamente mais tarde.");
+          newSummary.totalExpenses += transaction.amount;
+          newSummary.balance -= transaction.amount;
         }
-      } finally {
-        setLoading(false);
-        console.log("Finalizou loadDashboardData");
+
+        // Acumular totais por categoria
+        const categoryKey = transaction.category_name;
+        if (!categoryMap.has(categoryKey)) {
+          categoryMap.set(categoryKey, { amount: 0, count: 0 });
+        }
+        const category = categoryMap.get(categoryKey);
+        category.amount += transaction.amount;
+        category.count += 1;
+      });
+
+      // Converter mapa de categorias para array e ordenar
+      newSummary.topCategories = Array.from(categoryMap.entries())
+        .map(([category, data]) => ({
+          category,
+          amount: data.amount,
+          count: data.count,
+        }))
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 5);
+
+      setSummary(newSummary);
+      localStorage.setItem("dashboard_summary", JSON.stringify(newSummary));
+
+      // Atualizar transações recentes
+      const recentOnes =
+        transactions
+          ?.sort(
+            (a: Transaction, b: Transaction) =>
+              new Date(b.date).getTime() - new Date(a.date).getTime()
+          )
+          .slice(0, 5) || [];
+
+      setRecentTransactions(recentOnes);
+      localStorage.setItem("recent_transactions", JSON.stringify(recentOnes));
+    } catch (err) {
+      console.error("Erro ao carregar dados do dashboard:", err);
+      setError("Erro ao carregar dados do dashboard");
+      if (retryCount < MAX_RETRIES) {
+        setTimeout(() => {
+          setRetryCount((prev) => prev + 1);
+          loadDashboardData();
+        }, Math.pow(2, retryCount) * 1000);
       }
-    },
-    [currentMonth, currentYear, persistData, retryCount]
-  );
+    } finally {
+      setLoading(false);
+    }
+  }, [currentMonth, currentYear, retryCount, userSettings]);
+
+  // Efeito para carregar dados
+  useEffect(() => {
+    loadUserSettings();
+  }, [loadUserSettings]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    // Função para verificar conectividade
-    const checkConnectivity = () => {
-      if (!navigator.onLine) {
-        toast.error("Sem conexão com a internet. Mostrando dados salvos.");
-        return false;
-      }
-      return true;
-    };
-
-    // Carregar dados iniciais
-    if (checkConnectivity()) {
-      loadDashboardData();
-    }
-
-    // Listener para mudanças de conectividade
-    const handleOnline = () => {
-      toast.success("Conexão restaurada! Atualizando dados...");
-      if (isMounted) loadDashboardData();
-    };
-
-    const handleOffline = () => {
-      toast.error("Conexão perdida. Usando dados salvos localmente.");
-    };
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    // Cleanup
-    return () => {
-      isMounted = false;
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
+    loadDashboardData();
   }, [loadDashboardData]);
 
   const formatCurrency = (value: number) => {
@@ -288,7 +267,7 @@ export default function Dashboard() {
     return methods[method] || method;
   };
 
-  if (loading) {
+  if (loading || salaryLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <LoadingSpinner />
@@ -332,217 +311,187 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <div className="text-sm text-gray-600">
-          {new Date().toLocaleDateString("pt-BR", {
-            month: "long",
-            year: "numeric",
-          })}
-        </div>
-      </div>
+    <div className="p-4 space-y-4">
+      {/* Resumo de Saldos */}
+      {userSettings &&
+        (userSettings.total_extra_balance > 0 || userSettings.salary > 0) && (
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+            <h3 className="font-semibold text-gray-900 mb-3">
+              💰 Resumo dos Saldos
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 text-sm">
+              <div className="text-center">
+                <p className="text-gray-600">Salário Base</p>
+                <p className="font-semibold text-gray-900">
+                  R$ {userSettings.salary.toFixed(2)}
+                </p>
+              </div>
+              {userSettings.bonus_balance > 0 && (
+                <div className="text-center">
+                  <p className="text-gray-600">Bonificações</p>
+                  <p className="font-semibold text-yellow-600">
+                    R$ {userSettings.bonus_balance.toFixed(2)}
+                  </p>
+                </div>
+              )}
+              {userSettings.investment_balance > 0 && (
+                <div className="text-center">
+                  <p className="text-gray-600">Investimentos</p>
+                  <p className="font-semibold text-green-600">
+                    R$ {userSettings.investment_balance.toFixed(2)}
+                  </p>
+                </div>
+              )}
+              {userSettings.sales_balance > 0 && (
+                <div className="text-center">
+                  <p className="text-gray-600">Vendas</p>
+                  <p className="font-semibold text-blue-600">
+                    R$ {userSettings.sales_balance.toFixed(2)}
+                  </p>
+                </div>
+              )}
+              {userSettings.other_balance > 0 && (
+                <div className="text-center">
+                  <p className="text-gray-600">Outros</p>
+                  <p className="font-semibold text-purple-600">
+                    R$ {userSettings.other_balance.toFixed(2)}
+                  </p>
+                </div>
+              )}
+              <div className="text-center border-l border-gray-300 pl-3">
+                <p className="text-gray-600">Total Inicial</p>
+                <p className="font-bold text-lg text-gray-900">
+                  R${" "}
+                  {(
+                    (userSettings.salary || 0) +
+                    (userSettings.total_extra_balance || 0)
+                  ).toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="card">
-          <div className="p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <TrendingUp className="h-8 w-8 text-green-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Receitas
-                  </dt>
-                  <dd className="text-lg font-semibold text-gray-900">
-                    {formatCurrency(summary.totalIncome)}
-                  </dd>
-                </dl>
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">Saldo Total</p>
+              <h3 className="text-2xl font-semibold">
+                R$ {summary.balance.toFixed(2)}
+              </h3>
             </div>
+            <DollarSign className="text-green-500" size={24} />
           </div>
         </div>
 
-        <div className="card">
-          <div className="p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <TrendingDown className="h-8 w-8 text-red-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Despesas
-                  </dt>
-                  <dd className="text-lg font-semibold text-gray-900">
-                    {formatCurrency(summary.totalExpenses)}
-                  </dd>
-                </dl>
-              </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">Receitas</p>
+              <h3 className="text-2xl font-semibold text-green-500">
+                R$ {summary.totalIncome.toFixed(2)}
+              </h3>
             </div>
+            <TrendingUp className="text-green-500" size={24} />
           </div>
         </div>
 
-        <div className="card">
-          <div className="p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <DollarSign
-                  className={`h-8 w-8 ${
-                    summary.balance >= 0 ? "text-green-600" : "text-red-600"
-                  }`}
-                />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Saldo
-                  </dt>
-                  <dd
-                    className={`text-lg font-semibold ${
-                      summary.balance >= 0 ? "text-green-600" : "text-red-600"
-                    }`}
-                  >
-                    {formatCurrency(summary.balance)}
-                  </dd>
-                </dl>
-              </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">Despesas</p>
+              <h3 className="text-2xl font-semibold text-red-500">
+                R$ {summary.totalExpenses.toFixed(2)}
+              </h3>
             </div>
+            <TrendingDown className="text-red-500" size={24} />
           </div>
         </div>
 
-        <div className="card">
-          <div className="p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Activity className="h-8 w-8 text-blue-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Transações
-                  </dt>
-                  <dd className="text-lg font-semibold text-gray-900">
-                    {summary.transactionCount}
-                  </dd>
-                </dl>
-              </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">Transações</p>
+              <h3 className="text-2xl font-semibold">
+                {summary.transactionCount}
+              </h3>
             </div>
+            <Activity className="text-blue-500" size={24} />
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Transações Recentes */}
-        <div className="card">
-          <div className="card-header">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Transações Recentes
-            </h3>
-          </div>
-          <div className="p-6">
-            {recentTransactions.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Nenhuma transação encontrada</p>
-                <p className="text-sm text-gray-400 mt-2">
-                  Comece adicionando suas primeiras transações.
-                </p>
+      {/* Transações Recentes */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <h3 className="text-lg font-semibold mb-4">Transações Recentes</h3>
+        <div className="space-y-2">
+          {recentTransactions.map((transaction) => (
+            <div
+              key={transaction.id}
+              className="flex items-center justify-between p-2 hover:bg-gray-50 rounded"
+            >
+              <div className="flex items-center space-x-3">
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{
+                    backgroundColor: transaction.category_color || "#CBD5E0",
+                  }}
+                />
+                <div>
+                  <p className="font-medium">{transaction.description}</p>
+                  <p className="text-sm text-gray-500">
+                    {transaction.category_name} •{" "}
+                    {new Date(transaction.date).toLocaleDateString()}
+                  </p>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {recentTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center space-x-4"
-                  >
-                    <div
-                      className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm"
-                      style={{
-                        backgroundColor: `${transaction.category_color}20`,
-                        color: transaction.category_color,
-                      }}
-                    >
-                      {transaction.category_icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {transaction.description || transaction.category_name}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {transaction.category_name} •{" "}
-                        {getPaymentMethodName(transaction.payment_method)}
-                      </p>
-                    </div>
-                    <div className="flex-shrink-0 text-right">
-                      <p
-                        className={`text-sm font-medium ${
-                          transaction.type === "income"
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {transaction.type === "income" ? "+" : "-"}
-                        {formatCurrency(transaction.amount)}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {formatDate(transaction.date)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+              <span
+                className={`font-semibold ${
+                  transaction.type === "income"
+                    ? "text-green-500"
+                    : "text-red-500"
+                }`}
+              >
+                {transaction.type === "income" ? "+" : "-"} R${" "}
+                {transaction.amount.toFixed(2)}
+              </span>
+            </div>
+          ))}
+          {recentTransactions.length === 0 && (
+            <p className="text-gray-500 text-center py-4">
+              Nenhuma transação encontrada
+            </p>
+          )}
         </div>
+      </div>
 
-        {/* Top Categorias */}
-        <div className="card">
-          <div className="card-header">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Principais Categorias
-            </h3>
-          </div>
-          <div className="p-6">
-            {summary.topCategories.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Nenhuma categoria encontrada</p>
-                <p className="text-sm text-gray-400 mt-2">
-                  As categorias aparecerão aqui quando você adicionar
-                  transações.
+      {/* Top Categorias */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <h3 className="text-lg font-semibold mb-4">Top Categorias</h3>
+        <div className="space-y-2">
+          {summary.topCategories.map((category) => (
+            <div
+              key={category.category}
+              className="flex items-center justify-between p-2 hover:bg-gray-50 rounded"
+            >
+              <div>
+                <p className="font-medium">{category.category}</p>
+                <p className="text-sm text-gray-500">
+                  {category.count} transações
                 </p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {summary.topCategories.map((item, index) => (
-                  <div
-                    key={item.category}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-xs font-medium text-gray-600">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {item.category}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {item.count} transações
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">
-                        {formatCurrency(item.amount)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+              <span className="font-semibold">
+                R$ {category.amount.toFixed(2)}
+              </span>
+            </div>
+          ))}
+          {summary.topCategories.length === 0 && (
+            <p className="text-gray-500 text-center py-4">
+              Nenhuma categoria encontrada
+            </p>
+          )}
         </div>
       </div>
     </div>

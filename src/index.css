@@ -134,3 +134,62 @@ html {
 @media (prefers-color-scheme: dark) {
   /* Dark mode styles will be added here */
 }
+
+/* Database error states */
+.database-error {
+  @apply bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4;
+}
+
+.database-error-icon {
+  @apply text-red-500 text-2xl mb-2;
+}
+
+.database-error-title {
+  @apply text-red-800 font-semibold text-lg mb-2;
+}
+
+.database-error-message {
+  @apply text-red-700 text-sm mb-3;
+}
+
+.database-error-actions {
+  @apply flex gap-2 flex-wrap;
+}
+
+.database-error-button {
+  @apply bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded transition-colors;
+}
+
+/* Warning states */
+.warning-banner {
+  @apply bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 mb-4;
+}
+
+.warning-icon {
+  @apply text-yellow-500 text-xl;
+}
+
+.warning-title {
+  @apply text-yellow-800 font-semibold;
+}
+
+.warning-message {
+  @apply text-yellow-700 text-sm;
+}
+
+/* Success states */
+.success-banner {
+  @apply bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-4;
+}
+
+.success-icon {
+  @apply text-green-500 text-xl;
+}
+
+.success-title {
+  @apply text-green-800 font-semibold;
+}
+
+.success-message {
+  @apply text-green-700 text-sm;
+}
