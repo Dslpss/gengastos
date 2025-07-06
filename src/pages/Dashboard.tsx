@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { apiService } from "../lib/supabaseApi";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { TrendingUp, TrendingDown, DollarSign, Activity } from "lucide-react";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
@@ -26,111 +25,246 @@ interface Summary {
 }
 
 export default function Dashboard() {
-  const [summary, setSummary] = useState<Summary>({
-    totalIncome: 0,
-    totalExpenses: 0,
-    balance: 0,
-    transactionCount: 0,
-    topCategories: [],
+  const [summary, setSummary] = useState<Summary>(() => {
+    // Tentar recuperar dados do localStorage
+    const savedSummary = localStorage.getItem("dashboard_summary");
+    return savedSummary
+      ? JSON.parse(savedSummary)
+      : {
+          totalIncome: 0,
+          totalExpenses: 0,
+          balance: 0,
+          transactionCount: 0,
+          topCategories: [],
+        };
   });
+
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>(
-    []
+    () => {
+      // Tentar recuperar dados do localStorage
+      const savedTransactions = localStorage.getItem("recent_transactions");
+      return savedTransactions ? JSON.parse(savedTransactions) : [];
+    }
   );
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  useEffect(() => {
-    loadDashboardData();
-
-    // Timeout de segurança para evitar loading infinito
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.warn("⚠️ Timeout de carregamento atingido");
-        setError("Tempo limite excedido. Tente novamente.");
-        setLoading(false);
+  // Função para salvar dados no localStorage
+  const persistData = useCallback(
+    (newSummary: Summary, newTransactions: Transaction[]) => {
+      try {
+        localStorage.setItem("dashboard_summary", JSON.stringify(newSummary));
+        localStorage.setItem(
+          "recent_transactions",
+          JSON.stringify(newTransactions)
+        );
+      } catch (error) {
+        console.warn("Erro ao persistir dados localmente:", error);
       }
-    }, 15000); // 15 segundos
+    },
+    []
+  );
 
-    return () => clearTimeout(timeout);
-  }, []);
+  const loadDashboardData = useCallback(
+    async (isRetry = false) => {
+      console.log("Iniciando loadDashboardData");
+      try {
+        if (!isRetry) {
+          setLoading(true);
+        }
+        setError(null);
 
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log("🔄 Iniciando carregamento do dashboard...");
+        // Verificar se o usuário está logado
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+        console.log("Resultado getSession:", session, sessionError);
 
-      // Verificar se o usuário está logado
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        console.error("❌ Usuário não autenticado");
-        setError("Usuário não autenticado");
-        toast.error("Você precisa fazer login para acessar o dashboard");
-        setLoading(false);
-        return;
-      }
+        if (sessionError) {
+          throw new Error("Erro de autenticação: " + sessionError.message);
+        }
 
-      console.log("✅ Usuário autenticado:", user.email);
+        if (!session?.user) {
+          setLoading(false);
+          setError("Sessão expirada. Faça login novamente.");
+          toast.error("Sessão expirada. Faça login novamente.");
+          return;
+        }
 
-      // Carregar resumo do mês atual
-      console.log("📊 Carregando resumo financeiro...");
-      const summaryData = await apiService.getDashboardSummary(
-        currentMonth,
-        currentYear
-      );
-      console.log("✅ Resumo carregado:", summaryData);
-      setSummary(summaryData);
+        // Carregar dados com timeout
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout")), 5000)
+        );
 
-      // Carregar transações recentes
-      console.log("💰 Carregando transações...");
-      const transactionsData = await apiService.getTransactions({
-        limit: 5,
-        month: currentMonth,
-        year: currentYear,
-      });
-      console.log("✅ Transações carregadas:", transactionsData);
+        const dataPromise = supabase
+          .from("transactions")
+          .select(
+            `
+          id,
+          amount,
+          description,
+          date,
+          type,
+          payment_method,
+          category:categories(name, color, icon)
+        `
+          )
+          .eq("user_id", session.user.id)
+          .gte("date", new Date(currentYear, currentMonth - 1, 1).toISOString())
+          .lte("date", new Date(currentYear, currentMonth, 0).toISOString())
+          .order("date", { ascending: false })
+          .limit(5);
 
-      // Converter transações para o formato esperado
-      const convertedTransactions: Transaction[] =
-        transactionsData.transactions.map((t) => ({
+        const response = await Promise.race([dataPromise, timeoutPromise]);
+        const { data: transactions, error: transactionsError } =
+          response as any;
+
+        if (transactionsError) {
+          throw new Error(
+            "Erro ao carregar transações: " + transactionsError.message
+          );
+        }
+
+        const allTransactions = transactions || [];
+
+        // Calcular resumo
+        const totalIncome = allTransactions
+          .filter((t) => t.type === "income")
+          .reduce((sum, t) => sum + t.amount, 0);
+
+        const totalExpenses = allTransactions
+          .filter((t) => t.type === "expense")
+          .reduce((sum, t) => sum + t.amount, 0);
+
+        const balance = totalIncome - totalExpenses;
+
+        // Calcular top categorias
+        const categoryMap = new Map<
+          string,
+          { amount: number; count: number }
+        >();
+        allTransactions.forEach((transaction) => {
+          const categoryName =
+            (transaction.category as any)?.name || "Sem categoria";
+          const current = categoryMap.get(categoryName) || {
+            amount: 0,
+            count: 0,
+          };
+          categoryMap.set(categoryName, {
+            amount: current.amount + transaction.amount,
+            count: current.count + 1,
+          });
+        });
+
+        const topCategories = Array.from(categoryMap.entries())
+          .map(([category, data]) => ({ category, ...data }))
+          .sort((a, b) => b.amount - a.amount)
+          .slice(0, 5);
+
+        const newSummary = {
+          totalIncome,
+          totalExpenses,
+          balance,
+          transactionCount: allTransactions.length,
+          topCategories,
+        };
+
+        // Converter transações
+        const newTransactions: Transaction[] = allTransactions.map((t) => ({
           id: t.id,
           amount: t.amount,
           description: t.description || "",
           date: t.date,
           type: t.type,
-          category_name: t.category?.name || "Sem categoria",
-          category_color: t.category?.color || "#6B7280",
-          category_icon: t.category?.icon || "📝",
+          category_name: (t.category as any)?.name || "Sem categoria",
+          category_color: (t.category as any)?.color || "#6B7280",
+          category_icon: (t.category as any)?.icon || "📝",
           payment_method: t.payment_method,
         }));
 
-      setRecentTransactions(convertedTransactions);
-      console.log("🎉 Dashboard carregado com sucesso!");
-    } catch (error: any) {
-      console.error("❌ Erro ao carregar dados:", error);
-      console.error("Detalhes do erro:", error.message, error.stack);
+        // Atualizar estados e persistir dados
+        setSummary(newSummary);
+        setRecentTransactions(newTransactions);
+        persistData(newSummary, newTransactions);
+        setRetryCount(0); // Resetar contagem de tentativas após sucesso
+      } catch (error: any) {
+        console.error("Erro ao carregar dados:", error);
 
-      // Verificar tipo de erro
-      if (error.message?.includes("não autenticado")) {
-        setError("Sessão expirada. Faça login novamente.");
-        toast.error("Sessão expirada. Faça login novamente.");
-      } else if (error.message?.includes("fetch")) {
-        setError("Erro de conexão. Verifique sua internet.");
-        toast.error("Erro de conexão. Verifique sua internet.");
-      } else {
-        setError("Erro ao carregar dados do dashboard.");
-        toast.error("Erro ao carregar dados do dashboard. Tente novamente.");
+        // Se ainda não atingiu o limite de tentativas, tentar novamente
+        if (!isRetry && retryCount < MAX_RETRIES) {
+          setRetryCount((prev) => prev + 1);
+          console.log(`Tentativa ${retryCount + 1} de ${MAX_RETRIES}...`);
+          setTimeout(() => loadDashboardData(true), 2000 * (retryCount + 1));
+          return;
+        }
+
+        // Mostrar erro apropriado após todas as tentativas
+        if (error.message?.includes("Timeout")) {
+          setError(
+            "Conexão lenta. Os últimos dados salvos estão sendo exibidos."
+          );
+          toast.error(
+            "Problemas de conexão. Dados podem estar desatualizados."
+          );
+        } else if (error.message?.includes("não autenticado")) {
+          setError("Sessão expirada. Faça login novamente.");
+          toast.error("Sessão expirada. Faça login novamente.");
+        } else {
+          setError("Erro ao atualizar dados. Mostrando últimos dados salvos.");
+          toast.error("Erro ao atualizar dados. Tente novamente mais tarde.");
+        }
+      } finally {
+        setLoading(false);
+        console.log("Finalizou loadDashboardData");
       }
-    } finally {
-      setLoading(false);
-      console.log("✅ Loading finalizado");
+    },
+    [currentMonth, currentYear, persistData, retryCount]
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    // Função para verificar conectividade
+    const checkConnectivity = () => {
+      if (!navigator.onLine) {
+        toast.error("Sem conexão com a internet. Mostrando dados salvos.");
+        return false;
+      }
+      return true;
+    };
+
+    // Carregar dados iniciais
+    if (checkConnectivity()) {
+      loadDashboardData();
     }
-  };
+
+    // Listener para mudanças de conectividade
+    const handleOnline = () => {
+      toast.success("Conexão restaurada! Atualizando dados...");
+      if (isMounted) loadDashboardData();
+    };
+
+    const handleOffline = () => {
+      toast.error("Conexão perdida. Usando dados salvos localmente.");
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    // Cleanup
+    return () => {
+      isMounted = false;
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [loadDashboardData]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -166,20 +300,32 @@ export default function Dashboard() {
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
         <div className="text-center">
-          <div className="text-6xl mb-4">⚠️</div>
+          <div className="text-6xl mb-4">
+            {error.includes("conexão") ? "📡" : "⚠️"}
+          </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Ops! Algo deu errado
+            {error.includes("conexão")
+              ? "Problemas de Conexão"
+              : "Ops! Algo deu errado"}
           </h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => {
-              console.log("🔄 Tentando recarregar...");
-              loadDashboardData();
-            }}
-            className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            🔄 Tentar Novamente
-          </button>
+          <div className="flex flex-col space-y-2">
+            <p className="text-sm text-gray-500">
+              Status: {navigator.onLine ? "🟢 Online" : "🔴 Offline"}
+            </p>
+            <button
+              onClick={() => {
+                if (navigator.onLine) {
+                  loadDashboardData();
+                } else {
+                  toast.error("Sem conexão com a internet");
+                }
+              }}
+              className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              🔄 Tentar Novamente
+            </button>
+          </div>
         </div>
       </div>
     );

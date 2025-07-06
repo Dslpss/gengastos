@@ -4,11 +4,11 @@ import {
   Routes,
   Route,
   Navigate,
+  Outlet,
 } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "./stores/authStore";
 import { supabase } from "./lib/supabase";
-import { apiService } from "./lib/supabaseApi";
 import Layout from "./components/layout/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -18,37 +18,29 @@ import Budgets from "./pages/Budgets";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import LoadingSpinner from "./components/ui/LoadingSpinner";
-import type { User } from "./types";
+
+// Componente para proteger rotas
+const ProtectedRoute = () => {
+  const { user } = useAuthStore.getState(); // Acessa o estado mais recente
+  return user ? <Outlet /> : <Navigate to="/login" replace />;
+};
 
 function App() {
   const { user, isLoading, setUser, setLoading } = useAuthStore();
 
   useEffect(() => {
-    // Verificar se há uma sessão ativa
     const checkSession = async () => {
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
         if (session?.user) {
-          // Converter o user do Supabase para nosso tipo User
-          const userForStore: User = {
+          setUser({
             id: session.user.id,
             email: session.user.email || "",
             created_at: session.user.created_at || new Date().toISOString(),
             updated_at: session.user.updated_at || new Date().toISOString(),
-          };
-          setUser(userForStore);
-
-          // Criar categorias padrão se necessário
-          try {
-            await apiService.createDefaultCategories();
-          } catch (error) {
-            console.log(
-              "Categorias padrão já existem ou erro ao criar:",
-              error
-            );
-          }
+          });
         } else {
           setUser(null);
         }
@@ -62,26 +54,16 @@ function App() {
 
     checkSession();
 
-    // Escutar mudanças na autenticação
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        // Converter o user do Supabase para nosso tipo User
-        const userForStore: User = {
+        setUser({
           id: session.user.id,
           email: session.user.email || "",
           created_at: session.user.created_at || new Date().toISOString(),
           updated_at: session.user.updated_at || new Date().toISOString(),
-        };
-        setUser(userForStore);
-
-        // Criar categorias padrão se necessário
-        try {
-          await apiService.createDefaultCategories();
-        } catch (error) {
-          console.log("Categorias padrão já existem ou erro ao criar:", error);
-        }
+        });
       } else {
         setUser(null);
       }
@@ -100,107 +82,49 @@ function App() {
   }
 
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-50">
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: "#363636",
-              color: "#fff",
-            },
-          }}
-        />
-
+    <>
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: "#363636",
+            color: "#fff",
+          },
+        }}
+      />
+      <Router>
         <Routes>
-          <Route
-            path="/login"
-            element={user ? <Navigate to="/" replace /> : <Login />}
-          />
-
           <Route
             path="/"
             element={
               user ? (
-                <Layout>
-                  <Dashboard />
-                </Layout>
+                <Navigate to="/dashboard" replace />
               ) : (
                 <Navigate to="/login" replace />
               )
             }
           />
+          <Route path="/login" element={<Login />} />
 
+          {/* Rotas Protegidas */}
           <Route
-            path="/transactions"
             element={
-              user ? (
-                <Layout>
-                  <Transactions />
-                </Layout>
-              ) : (
-                <Navigate to="/login" replace />
-              )
+              <Layout>
+                <ProtectedRoute />
+              </Layout>
             }
-          />
-
-          <Route
-            path="/categories"
-            element={
-              user ? (
-                <Layout>
-                  <Categories />
-                </Layout>
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-
-          <Route
-            path="/budgets"
-            element={
-              user ? (
-                <Layout>
-                  <Budgets />
-                </Layout>
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-
-          <Route
-            path="/reports"
-            element={
-              user ? (
-                <Layout>
-                  <Reports />
-                </Layout>
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-
-          <Route
-            path="/settings"
-            element={
-              user ? (
-                <Layout>
-                  <Settings />
-                </Layout>
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-
-          <Route path="*" element={<Navigate to="/" replace />} />
+          >
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/budgets" element={<Budgets />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
         </Routes>
-      </div>
-    </Router>
+      </Router>
+    </>
   );
 }
 

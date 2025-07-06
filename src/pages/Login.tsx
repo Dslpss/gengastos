@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { supabase } from "../lib/supabase";
 import toast from "react-hot-toast";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 
-
 export default function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -55,6 +56,7 @@ export default function Login() {
             updated_at: data.user.updated_at || new Date().toISOString(),
           };
           setUser(userForStore);
+          navigate("/");
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -74,6 +76,7 @@ export default function Login() {
             updated_at: data.user.updated_at || new Date().toISOString(),
           };
           setUser(userForStore);
+          navigate("/");
         }
       }
     } catch (error: any) {
@@ -278,7 +281,9 @@ export default function Login() {
                     <button
                       type="button"
                       onClick={() => {
-                        toast.success("Tente criar uma nova conta com email diferente");
+                        toast.success(
+                          "Tente criar uma nova conta com email diferente"
+                        );
                         setHasEmailError(false);
                       }}
                       className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
