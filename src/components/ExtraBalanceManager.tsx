@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { apiService, type UserSettings } from "../lib/supabaseApi";
+import { useEventBus, EVENTS } from "../lib/eventBus";
 import {
   DollarSign,
   TrendingUp,
@@ -32,6 +33,7 @@ const ExtraBalanceManager: React.FC<ExtraBalanceManagerProps> = ({
   const [loading, setLoading] = useState(false);
   const [editingType, setEditingType] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
+  const { emit } = useEventBus();
 
   const extraBalances: ExtraBalance[] = [
     {
@@ -92,6 +94,8 @@ const ExtraBalanceManager: React.FC<ExtraBalanceManagerProps> = ({
       if (updatedSettings) {
         onUpdate(updatedSettings);
         toast.success("Saldo atualizado com sucesso!");
+        emit(EVENTS.USER_SETTINGS_UPDATED, updatedSettings);
+        emit(EVENTS.DASHBOARD_REFRESH);
         setEditingType(null);
         setEditValue("");
       } else {
@@ -130,6 +134,8 @@ const ExtraBalanceManager: React.FC<ExtraBalanceManagerProps> = ({
             Math.abs(amount)
           )}`
         );
+        emit(EVENTS.USER_SETTINGS_UPDATED, updatedSettings);
+        emit(EVENTS.DASHBOARD_REFRESH);
       } else {
         toast.error("Erro ao atualizar saldo");
       }

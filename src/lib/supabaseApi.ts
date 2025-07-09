@@ -33,6 +33,7 @@ export interface Budget {
   amount: number;
   month: number;
   year: number;
+  spent?: number;
   created_at: string;
   updated_at: string;
   category?: Category;
@@ -532,7 +533,40 @@ class SupabaseApiService {
     });
 
     if (error) throw new Error(error.message);
-    return data || [];
+
+    // Calcular valor gasto para cada orçamento
+    const budgetsWithSpent = await Promise.all(
+      (data || []).map(async (budget) => {
+        // Buscar transações da categoria no período do orçamento
+        const { data: transactions } = await supabase
+          .from("transactions")
+          .select("amount, type")
+          .eq("user_id", user.id)
+          .eq("category_id", budget.category_id)
+          .gte(
+            "date",
+            `${budget.year}-${budget.month.toString().padStart(2, "0")}-01`
+          )
+          .lte(
+            "date",
+            `${budget.year}-${budget.month.toString().padStart(2, "0")}-31`
+          );
+
+        const spent =
+          transactions?.reduce((sum, transaction) => {
+            return transaction.type === "expense"
+              ? sum + transaction.amount
+              : sum;
+          }, 0) || 0;
+
+        return {
+          ...budget,
+          spent,
+        };
+      })
+    );
+
+    return budgetsWithSpent;
   }
 
   async createBudget(budgetData: {
@@ -561,6 +595,46 @@ class SupabaseApiService {
 
     if (error) throw new Error(error.message);
     return data;
+  }
+
+  async updateBudget(
+    id: string,
+    budgetData: {
+      category_id?: string;
+      amount?: number;
+      month?: number;
+      year?: number;
+    }
+  ): Promise<Budget> {
+    const user = await this.getCurrentUser();
+
+    const { data, error } = await supabase
+      .from("budgets")
+      .update(budgetData)
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select(
+        `
+        *,
+        category:categories(*)
+      `
+      )
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async deleteBudget(id: string): Promise<void> {
+    const user = await this.getCurrentUser();
+
+    const { error } = await supabase
+      .from("budgets")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) throw new Error(error.message);
   }
 
   // Initialize default categories

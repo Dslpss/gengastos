@@ -11,6 +11,12 @@ import {
   Trash2,
   Plus,
   Edit3,
+  Save,
+  X,
+  DollarSign,
+  Tag,
+  Wallet,
+  Shield,
 } from "lucide-react";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ExtraBalanceManager from "../components/ExtraBalanceManager";
@@ -192,348 +198,487 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <LoadingSpinner />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <LoadingSpinner />
+          <p className="text-gray-600 animate-pulse">
+            Carregando suas configurações...
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>
-      </div>
-
-      {/* Salário/Saldo Inicial */}
-      <div className="card">
-        <div className="card-header">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Salário / Saldo Inicial
-          </h3>
-        </div>
-        <div className="p-6">
-          {salaryLoading ? (
-            <LoadingSpinner />
-          ) : salaryEditMode ? (
-            <form
-              onSubmit={handleSaveSalary}
-              className="flex items-center space-x-3"
-            >
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                className="form-input w-40"
-                value={salaryInput}
-                onChange={(e) => setSalaryInput(e.target.value)}
-                placeholder="Ex: 3500.00"
-                autoFocus
-              />
-              <button type="submit" className="btn btn-primary">
-                Salvar
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  setSalaryEditMode(false);
-                  setSalaryInput(
-                    userSettings ? String(userSettings.salary) : ""
-                  );
-                }}
-              >
-                Cancelar
-              </button>
-            </form>
-          ) : (
-            <div className="flex items-center space-x-4">
-              <span className="text-lg font-medium text-gray-900">
-                {userSettings
-                  ? userSettings.salary.toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })
-                  : "Não cadastrado"}
-              </span>
-              <button
-                className="btn btn-primary"
-                onClick={() => setSalaryEditMode(true)}
-              >
-                {userSettings ? "Editar" : "Cadastrar"}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Saldos Extras */}
-      <div className="card">
-        <div className="card-header">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Gerenciar Saldos Extras
-          </h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Adicione e gerencie seus saldos extras como bonificações,
-            investimentos e vendas
-          </p>
-        </div>
-        <div className="p-6">
-          <ExtraBalanceManager
-            userSettings={userSettings}
-            onUpdate={setUserSettings}
-          />
-        </div>
-      </div>
-
-      {/* User Profile Section */}
-      <div className="card">
-        <div className="card-header">
-          <div className="flex items-center space-x-3">
-            <User className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-900">
-              Perfil do Usuário
-            </h3>
-          </div>
-        </div>
-
-        <div className="p-6">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-primary-600" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-6 space-y-8">
+        {/* Header Moderno */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl text-white">
+              <SettingsIcon className="w-8 h-8" />
             </div>
             <div>
-              <p className="font-medium text-gray-900">{user?.email}</p>
-              <p className="text-sm text-gray-600">
-                Usuário desde {new Date().getFullYear()}
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                ⚙️ Configurações
+              </h1>
+              <p className="text-gray-600">
+                Personalize sua experiência financeira
               </p>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Categories Management */}
-      <div className="card">
-        <div className="card-header">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <SettingsIcon className="w-5 h-5 text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-900">
-                Gerenciar Categorias
-              </h3>
+        {/* Perfil do Usuário */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-6 border-b border-gray-200/50">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl text-white">
+                <User className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  👤 Perfil do Usuário
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Informações da sua conta
+                </p>
+              </div>
             </div>
-            <button
-              onClick={() => setShowAddCategory(true)}
-              className="btn btn-primary"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Categoria
-            </button>
+          </div>
+          <div className="p-6">
+            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl">
+              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                {user?.email?.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">{user?.email}</p>
+                <p className="text-sm text-gray-600">Usuário ativo</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Add/Edit Category Form */}
-        {showAddCategory && (
-          <div className="border-b border-gray-200 p-6 bg-gray-50">
-            <form onSubmit={handleSubmitCategory} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="form-label">Nome da Categoria</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={categoryForm.name}
-                    onChange={(e) =>
-                      setCategoryForm({ ...categoryForm, name: e.target.value })
-                    }
-                    placeholder="Ex: Alimentação, Transporte..."
-                    required
-                  />
+        {/* Configurações Financeiras */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Salário/Saldo Inicial */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 border-b border-gray-200/50">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl text-white">
+                  <Wallet className="w-6 h-6" />
                 </div>
-
                 <div>
-                  <label className="form-label">Tipo</label>
-                  <select
-                    className="form-input"
-                    value={categoryForm.type}
-                    onChange={(e) =>
-                      setCategoryForm({
-                        ...categoryForm,
-                        type: e.target.value as "income" | "expense",
-                      })
-                    }
-                  >
-                    <option value="expense">Despesa</option>
-                    <option value="income">Receita</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="form-label">Cor</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="color"
-                      className="w-12 h-10 rounded border border-gray-300"
-                      value={categoryForm.color}
-                      onChange={(e) =>
-                        setCategoryForm({
-                          ...categoryForm,
-                          color: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      type="text"
-                      className="form-input flex-1"
-                      value={categoryForm.color}
-                      onChange={(e) =>
-                        setCategoryForm({
-                          ...categoryForm,
-                          color: e.target.value,
-                        })
-                      }
-                      placeholder="#3B82F6"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="form-label">Ícone</label>
-                  <div className="grid grid-cols-10 gap-2 mt-2">
-                    {defaultIcons.map((icon) => (
-                      <button
-                        key={icon}
-                        type="button"
-                        className={`p-2 text-lg border rounded hover:bg-gray-100 ${
-                          categoryForm.icon === icon
-                            ? "border-primary-500 bg-primary-50"
-                            : "border-gray-300"
-                        }`}
-                        onClick={() =>
-                          setCategoryForm({ ...categoryForm, icon })
-                        }
-                      >
-                        {icon}
-                      </button>
-                    ))}
-                  </div>
-                  <input
-                    type="text"
-                    className="form-input mt-2"
-                    value={categoryForm.icon}
-                    onChange={(e) =>
-                      setCategoryForm({ ...categoryForm, icon: e.target.value })
-                    }
-                    placeholder="Ou digite um emoji"
-                  />
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    💰 Salário / Saldo Inicial
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Configure sua renda base mensal
+                  </p>
                 </div>
               </div>
-
-              <div className="flex items-center space-x-3 pt-4">
-                <button type="submit" className="btn btn-primary">
-                  {editingCategory ? "Atualizar" : "Criar"} Categoria
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelForm}
-                  className="btn btn-secondary"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Categories List */}
-        <div className="p-6">
-          {categories.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">Nenhuma categoria criada ainda.</p>
-              <p className="text-sm text-gray-400 mt-2">
-                Comece criando suas primeiras categorias para organizar suas
-                transações.
-              </p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categories.map((category) => (
-                <div
-                  key={category.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
-                        style={{
-                          backgroundColor: `${category.color}20`,
-                          color: category.color,
-                        }}
-                      >
-                        {category.icon}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {category.name}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {category.type === "income" ? "Receita" : "Despesa"}
-                        </p>
-                      </div>
+            <div className="p-6">
+              {salaryLoading ? (
+                <div className="text-center py-8">
+                  <LoadingSpinner />
+                </div>
+              ) : salaryEditMode ? (
+                <form onSubmit={handleSaveSalary} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      💵 Valor do Salário
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all duration-200 pl-12"
+                        value={salaryInput}
+                        onChange={(e) => setSalaryInput(e.target.value)}
+                        placeholder="Ex: 3500.00"
+                        autoFocus
+                      />
+                      <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                     </div>
-                    <div className="flex items-center space-x-2">
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="submit"
+                      className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
+                    >
+                      <Save className="w-4 h-4" />
+                      Salvar
+                    </button>
+                    <button
+                      type="button"
+                      className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2"
+                      onClick={() => {
+                        setSalaryEditMode(false);
+                        setSalaryInput(
+                          userSettings ? String(userSettings.salary) : ""
+                        );
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">
+                          💰 Salário Atual
+                        </p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {userSettings
+                            ? userSettings.salary.toLocaleString("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                              })
+                            : "R$ 0,00"}
+                        </p>
+                      </div>
                       <button
-                        onClick={() => handleEditCategory(category)}
-                        className="p-2 text-gray-400 hover:text-primary-600 transition-colors"
-                        title="Editar categoria"
+                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+                        onClick={() => setSalaryEditMode(true)}
                       >
                         <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCategory(category.id)}
-                        className="p-2 text-gray-400 hover:text-danger-600 transition-colors"
-                        title="Excluir categoria"
-                      >
-                        <Trash2 className="w-4 h-4" />
+                        {userSettings?.salary ? "Editar" : "Cadastrar"}
                       </button>
                     </div>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* System Information */}
-      <div className="card">
-        <div className="card-header">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Informações do Sistema
-          </h3>
+          {/* Saldos Extras */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 border-b border-gray-200/50">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-white">
+                  <Plus className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    💎 Gerenciar Saldos Extras
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Adicione bonificações, investimentos e vendas
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6">
+              <ExtraBalanceManager
+                userSettings={userSettings}
+                onUpdate={setUserSettings}
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-gray-600">Versão do Sistema</p>
-              <p className="font-medium">GenGastos v1.0.0</p>
+        {/* Gerenciamento de Categorias */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 border-b border-gray-200/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-r from-orange-600 to-red-600 rounded-xl text-white">
+                  <Tag className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    🏷️ Gerenciar Categorias
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Organize suas transações por categoria
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddCategory(true)}
+                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                Nova Categoria
+              </button>
             </div>
-            <div>
-              <p className="text-gray-600">Última Atualização</p>
-              <p className="font-medium">
-                {new Date().toLocaleDateString("pt-BR")}
-              </p>
+          </div>
+
+          <div className="p-6">
+            {/* Add/Edit Category Form */}
+            {showAddCategory && (
+              <div className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-gray-50 to-blue-50 mb-6">
+                <form onSubmit={handleSubmitCategory} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        📝 Nome da Categoria
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200"
+                        value={categoryForm.name}
+                        onChange={(e) =>
+                          setCategoryForm({
+                            ...categoryForm,
+                            name: e.target.value,
+                          })
+                        }
+                        placeholder="Ex: Alimentação, Transporte..."
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        🔄 Tipo
+                      </label>
+                      <select
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 bg-white"
+                        value={categoryForm.type}
+                        onChange={(e) =>
+                          setCategoryForm({
+                            ...categoryForm,
+                            type: e.target.value as "income" | "expense",
+                          })
+                        }
+                      >
+                        <option value="expense">❤️ Despesa</option>
+                        <option value="income">💚 Receita</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        🎨 Cor
+                      </label>
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="color"
+                          className="w-12 h-12 rounded-xl border border-gray-300 cursor-pointer"
+                          value={categoryForm.color}
+                          onChange={(e) =>
+                            setCategoryForm({
+                              ...categoryForm,
+                              color: e.target.value,
+                            })
+                          }
+                        />
+                        <input
+                          type="text"
+                          className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200"
+                          value={categoryForm.color}
+                          onChange={(e) =>
+                            setCategoryForm({
+                              ...categoryForm,
+                              color: e.target.value,
+                            })
+                          }
+                          placeholder="#3B82F6"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        😀 Ícone
+                      </label>
+                      <div className="grid grid-cols-10 gap-2 mt-2">
+                        {defaultIcons.map((icon) => (
+                          <button
+                            key={icon}
+                            type="button"
+                            className={`p-3 text-xl border rounded-xl hover:bg-white transition-all duration-200 ${
+                              categoryForm.icon === icon
+                                ? "border-orange-500 bg-orange-50 shadow-lg"
+                                : "border-gray-300 hover:border-orange-300"
+                            }`}
+                            onClick={() =>
+                              setCategoryForm({ ...categoryForm, icon })
+                            }
+                          >
+                            {icon}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-200 mt-3"
+                        value={categoryForm.icon}
+                        onChange={(e) =>
+                          setCategoryForm({
+                            ...categoryForm,
+                            icon: e.target.value,
+                          })
+                        }
+                        placeholder="Ou digite um emoji personalizado"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 pt-4">
+                    <button
+                      type="submit"
+                      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+                    >
+                      <Save className="w-4 h-4" />
+                      {editingCategory ? "Atualizar" : "Criar"} Categoria
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelForm}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2"
+                    >
+                      <X className="w-4 h-4" />
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Categories List */}
+            {categories.length === 0 ? (
+              <div className="text-center py-16 space-y-4">
+                <div className="text-6xl mb-4">🏷️</div>
+                <p className="text-xl text-gray-500 font-medium">
+                  Nenhuma categoria criada ainda
+                </p>
+                <p className="text-sm text-gray-400">
+                  Comece criando suas primeiras categorias para organizar suas
+                  transações!
+                </p>
+                <button
+                  onClick={() => setShowAddCategory(true)}
+                  className="mt-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                >
+                  ✨ Criar Primeira Categoria
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {categories.map((category, index) => (
+                  <div
+                    key={category.id}
+                    className={`border border-gray-200 rounded-xl p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 ${
+                      index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg"
+                          style={{
+                            backgroundColor: `${category.color}20`,
+                            color: category.color,
+                            border: `2px solid ${category.color}30`,
+                          }}
+                        >
+                          {category.icon}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900 text-lg">
+                            {category.name}
+                          </p>
+                          <p
+                            className={`text-sm px-2 py-1 rounded-full inline-block ${
+                              category.type === "income"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {category.type === "income"
+                              ? "💚 Receita"
+                              : "❤️ Despesa"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleEditCategory(category)}
+                          className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-100 rounded-xl transition-all duration-200"
+                          title="Editar categoria"
+                        >
+                          <Edit3 className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(category.id)}
+                          className="p-2 text-red-600 hover:text-red-900 hover:bg-red-100 rounded-xl transition-all duration-200"
+                          title="Excluir categoria"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* System Information */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+          <div className="bg-gradient-to-r from-gray-50 to-slate-50 p-6 border-b border-gray-200/50">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-r from-gray-600 to-slate-600 rounded-xl text-white">
+                <Shield className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  ℹ️ Informações do Sistema
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Detalhes sobre sua conta e sistema
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-gray-600">Categorias Criadas</p>
-              <p className="font-medium">{categories.length}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Conta Criada</p>
-              <p className="font-medium">
-                {new Date(user?.created_at || "").toLocaleDateString("pt-BR")}
-              </p>
+          </div>
+
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl">
+                  <p className="text-sm text-gray-600 mb-1">
+                    📱 Versão do Sistema
+                  </p>
+                  <p className="font-bold text-lg text-gray-900">
+                    GenGastos v1.0.0
+                  </p>
+                </div>
+                <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
+                  <p className="text-sm text-gray-600 mb-1">
+                    🏷️ Categorias Criadas
+                  </p>
+                  <p className="font-bold text-lg text-gray-900">
+                    {categories.length}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl">
+                  <p className="text-sm text-gray-600 mb-1">
+                    🔄 Última Atualização
+                  </p>
+                  <p className="font-bold text-lg text-gray-900">
+                    {new Date().toLocaleDateString("pt-BR")}
+                  </p>
+                </div>
+                <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl">
+                  <p className="text-sm text-gray-600 mb-1">📅 Conta Criada</p>
+                  <p className="font-bold text-lg text-gray-900">
+                    {new Date(user?.created_at || "").toLocaleDateString(
+                      "pt-BR"
+                    )}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

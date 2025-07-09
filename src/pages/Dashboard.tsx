@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { apiService, type UserSettings } from "../lib/supabaseApi";
+import { useEventBus, EVENTS } from "../lib/eventBus";
 import { TrendingUp, TrendingDown, DollarSign, Activity } from "lucide-react";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import toast from "react-hot-toast";
@@ -11,9 +12,11 @@ interface Transaction {
   description: string;
   date: string;
   type: "income" | "expense";
-  category_name: string;
-  category_color: string;
-  category_icon: string;
+  category?: {
+    name: string;
+    color: string;
+    icon: string;
+  };
   payment_method: string;
 }
 
@@ -26,6 +29,8 @@ interface Summary {
 }
 
 export default function Dashboard() {
+  const { on } = useEventBus();
+
   // Estados
   const [summary, setSummary] = useState<Summary>(() => {
     const savedSummary = localStorage.getItem("dashboard_summary");
@@ -58,22 +63,6 @@ export default function Dashboard() {
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
-
-  // Função para salvar dados no localStorage
-  const persistData = useCallback(
-    (newSummary: Summary, newTransactions: Transaction[]) => {
-      try {
-        localStorage.setItem("dashboard_summary", JSON.stringify(newSummary));
-        localStorage.setItem(
-          "recent_transactions",
-          JSON.stringify(newTransactions)
-        );
-      } catch (error) {
-        console.warn("Erro ao persistir dados localmente:", error);
-      }
-    },
-    []
-  );
 
   const loadUserSettings = useCallback(async () => {
     try {
@@ -169,7 +158,7 @@ export default function Dashboard() {
       // Calcular resumo
       const initialBalance =
         (userSettings?.salary || 0) + (userSettings?.total_extra_balance || 0);
-      const newSummary = {
+      const newSummary: Summary = {
         totalIncome: 0,
         totalExpenses: 0,
         balance: initialBalance,
@@ -177,9 +166,9 @@ export default function Dashboard() {
         topCategories: [],
       };
 
-      const categoryMap = new Map();
+      const categoryMap = new Map<string, { amount: number; count: number }>();
 
-      transactions?.forEach((transaction: Transaction) => {
+      transactions?.forEach((transaction: any) => {
         if (transaction.type === "income") {
           newSummary.totalIncome += transaction.amount;
           newSummary.balance += transaction.amount;
@@ -189,11 +178,11 @@ export default function Dashboard() {
         }
 
         // Acumular totais por categoria
-        const categoryKey = transaction.category_name;
+        const categoryKey = transaction.category?.name || "Sem categoria";
         if (!categoryMap.has(categoryKey)) {
           categoryMap.set(categoryKey, { amount: 0, count: 0 });
         }
-        const category = categoryMap.get(categoryKey);
+        const category = categoryMap.get(categoryKey)!;
         category.amount += transaction.amount;
         category.count += 1;
       });
@@ -245,27 +234,24 @@ export default function Dashboard() {
     loadDashboardData();
   }, [loadDashboardData]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
+  // Listener para recarregar dashboard quando transações/configurações mudarem
+  useEffect(() => {
+    const unsubscribeTransactions = on(EVENTS.DASHBOARD_REFRESH, () => {
+      console.log("Recarregando dashboard devido a mudança em transações");
+      loadDashboardData();
+    });
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("pt-BR");
-  };
+    const unsubscribeSettings = on(EVENTS.USER_SETTINGS_UPDATED, () => {
+      console.log("Recarregando dashboard devido a mudança em configurações");
+      loadUserSettings();
+      loadDashboardData();
+    });
 
-  const getPaymentMethodName = (method: string) => {
-    const methods: Record<string, string> = {
-      cash: "Dinheiro",
-      credit_card: "Cartão de Crédito",
-      debit_card: "Cartão de Débito",
-      pix: "PIX",
-      transfer: "Transferência",
+    return () => {
+      unsubscribeTransactions();
+      unsubscribeSettings();
     };
-    return methods[method] || method;
-  };
+  }, [on, loadDashboardData, loadUserSettings]);
 
   if (loading || salaryLoading) {
     return (
@@ -300,7 +286,7 @@ export default function Dashboard() {
                   toast.error("Sem conexão com a internet");
                 }
               }}
-              className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
               🔄 Tentar Novamente
             </button>
@@ -311,187 +297,263 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Resumo de Saldos */}
-      {userSettings &&
-        (userSettings.total_extra_balance > 0 || userSettings.salary > 0) && (
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">
-              💰 Resumo dos Saldos
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 text-sm">
-              <div className="text-center">
-                <p className="text-gray-600">Salário Base</p>
-                <p className="font-semibold text-gray-900">
-                  R$ {userSettings.salary.toFixed(2)}
-                </p>
-              </div>
-              {userSettings.bonus_balance > 0 && (
-                <div className="text-center">
-                  <p className="text-gray-600">Bonificações</p>
-                  <p className="font-semibold text-yellow-600">
-                    R$ {userSettings.bonus_balance.toFixed(2)}
-                  </p>
-                </div>
-              )}
-              {userSettings.investment_balance > 0 && (
-                <div className="text-center">
-                  <p className="text-gray-600">Investimentos</p>
-                  <p className="font-semibold text-green-600">
-                    R$ {userSettings.investment_balance.toFixed(2)}
-                  </p>
-                </div>
-              )}
-              {userSettings.sales_balance > 0 && (
-                <div className="text-center">
-                  <p className="text-gray-600">Vendas</p>
-                  <p className="font-semibold text-blue-600">
-                    R$ {userSettings.sales_balance.toFixed(2)}
-                  </p>
-                </div>
-              )}
-              {userSettings.other_balance > 0 && (
-                <div className="text-center">
-                  <p className="text-gray-600">Outros</p>
-                  <p className="font-semibold text-purple-600">
-                    R$ {userSettings.other_balance.toFixed(2)}
-                  </p>
-                </div>
-              )}
-              <div className="text-center border-l border-gray-300 pl-3">
-                <p className="text-gray-600">Total Inicial</p>
-                <p className="font-bold text-lg text-gray-900">
-                  R${" "}
-                  {(
-                    (userSettings.salary || 0) +
-                    (userSettings.total_extra_balance || 0)
-                  ).toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-      {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Saldo Total</p>
-              <h3 className="text-2xl font-semibold">
-                R$ {summary.balance.toFixed(2)}
-              </h3>
-            </div>
-            <DollarSign className="text-green-500" size={24} />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Receitas</p>
-              <h3 className="text-2xl font-semibold text-green-500">
-                R$ {summary.totalIncome.toFixed(2)}
-              </h3>
-            </div>
-            <TrendingUp className="text-green-500" size={24} />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Despesas</p>
-              <h3 className="text-2xl font-semibold text-red-500">
-                R$ {summary.totalExpenses.toFixed(2)}
-              </h3>
-            </div>
-            <TrendingDown className="text-red-500" size={24} />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Transações</p>
-              <h3 className="text-2xl font-semibold">
-                {summary.transactionCount}
-              </h3>
-            </div>
-            <Activity className="text-blue-500" size={24} />
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Header com gradiente */}
+      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white p-6 rounded-b-3xl shadow-xl mb-8">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl font-bold mb-2 flex items-center">
+            <span className="mr-3 text-4xl">📊</span>
+            Dashboard Financeiro
+          </h1>
+          <p className="text-blue-100 text-lg">
+            Bem-vindo ao seu centro de controle financeiro
+          </p>
         </div>
       </div>
 
-      {/* Transações Recentes */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="text-lg font-semibold mb-4">Transações Recentes</h3>
-        <div className="space-y-2">
-          {recentTransactions.map((transaction) => (
-            <div
-              key={transaction.id}
-              className="flex items-center justify-between p-2 hover:bg-gray-50 rounded"
-            >
-              <div className="flex items-center space-x-3">
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{
-                    backgroundColor: transaction.category_color || "#CBD5E0",
-                  }}
-                />
-                <div>
-                  <p className="font-medium">{transaction.description}</p>
-                  <p className="text-sm text-gray-500">
-                    {transaction.category_name} •{" "}
-                    {new Date(transaction.date).toLocaleDateString()}
+      <div className="max-w-7xl mx-auto px-4 space-y-8 pb-8">
+        {/* Resumo de Saldos */}
+        {userSettings &&
+          (userSettings.total_extra_balance > 0 || userSettings.salary > 0) && (
+            <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-6 shadow-xl">
+              <h3 className="font-bold text-gray-800 mb-6 text-xl flex items-center">
+                <span className="mr-3 text-2xl">💰</span>
+                Resumo dos Saldos
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 text-center border border-gray-200 hover:shadow-lg transition-all duration-300">
+                  <div className="text-2xl mb-2">💵</div>
+                  <p className="text-gray-600 text-sm font-medium">
+                    Salário Base
+                  </p>
+                  <p className="font-bold text-gray-900 text-lg">
+                    R$ {userSettings.salary.toFixed(2)}
+                  </p>
+                </div>
+                {userSettings.bonus_balance > 0 && (
+                  <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 text-center border border-yellow-200 hover:shadow-lg transition-all duration-300">
+                    <div className="text-2xl mb-2">🎁</div>
+                    <p className="text-yellow-700 text-sm font-medium">
+                      Bonificações
+                    </p>
+                    <p className="font-bold text-yellow-800 text-lg">
+                      R$ {userSettings.bonus_balance.toFixed(2)}
+                    </p>
+                  </div>
+                )}
+                {userSettings.investment_balance > 0 && (
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 text-center border border-green-200 hover:shadow-lg transition-all duration-300">
+                    <div className="text-2xl mb-2">📈</div>
+                    <p className="text-green-700 text-sm font-medium">
+                      Investimentos
+                    </p>
+                    <p className="font-bold text-green-800 text-lg">
+                      R$ {userSettings.investment_balance.toFixed(2)}
+                    </p>
+                  </div>
+                )}
+                {userSettings.sales_balance > 0 && (
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center border border-blue-200 hover:shadow-lg transition-all duration-300">
+                    <div className="text-2xl mb-2">💼</div>
+                    <p className="text-blue-700 text-sm font-medium">Vendas</p>
+                    <p className="font-bold text-blue-800 text-lg">
+                      R$ {userSettings.sales_balance.toFixed(2)}
+                    </p>
+                  </div>
+                )}
+                {userSettings.other_balance > 0 && (
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center border border-purple-200 hover:shadow-lg transition-all duration-300">
+                    <div className="text-2xl mb-2">✨</div>
+                    <p className="text-purple-700 text-sm font-medium">
+                      Outros
+                    </p>
+                    <p className="font-bold text-purple-800 text-lg">
+                      R$ {userSettings.other_balance.toFixed(2)}
+                    </p>
+                  </div>
+                )}
+                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-4 text-center border-2 border-indigo-300 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                  <div className="text-2xl mb-2">🏆</div>
+                  <p className="text-indigo-700 text-sm font-medium">
+                    Total Inicial
+                  </p>
+                  <p className="font-bold text-indigo-900 text-xl">
+                    R${" "}
+                    {(
+                      (userSettings.salary || 0) +
+                      (userSettings.total_extra_balance || 0)
+                    ).toFixed(2)}
                   </p>
                 </div>
               </div>
-              <span
-                className={`font-semibold ${
-                  transaction.type === "income"
-                    ? "text-green-500"
-                    : "text-red-500"
-                }`}
-              >
-                {transaction.type === "income" ? "+" : "-"} R${" "}
-                {transaction.amount.toFixed(2)}
-              </span>
             </div>
-          ))}
-          {recentTransactions.length === 0 && (
-            <p className="text-gray-500 text-center py-4">
-              Nenhuma transação encontrada
-            </p>
           )}
-        </div>
-      </div>
 
-      {/* Top Categorias */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="text-lg font-semibold mb-4">Top Categorias</h3>
-        <div className="space-y-2">
-          {summary.topCategories.map((category) => (
-            <div
-              key={category.category}
-              className="flex items-center justify-between p-2 hover:bg-gray-50 rounded"
-            >
+        {/* Cards de Resumo */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">{category.category}</p>
-                <p className="text-sm text-gray-500">
-                  {category.count} transações
+                <p className="text-gray-600 text-sm font-medium uppercase tracking-wide">
+                  Saldo Total
+                </p>
+                <h3 className="text-3xl font-bold text-gray-900 mt-2">
+                  R$ {summary.balance.toFixed(2)}
+                </h3>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div
+                    className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all duration-500"
+                    style={{ width: summary.balance > 0 ? "100%" : "0%" }}
+                  ></div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-green-100 to-green-200 p-4 rounded-xl">
+                <DollarSign className="text-green-600 w-8 h-8" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-600 text-sm font-medium uppercase tracking-wide">
+                  Receitas
+                </p>
+                <h3 className="text-3xl font-bold text-green-700 mt-2">
+                  R$ {summary.totalIncome.toFixed(2)}
+                </h3>
+                <p className="text-sm text-green-600 mt-1 flex items-center">
+                  <span className="mr-1">↗️</span>
+                  Este mês
                 </p>
               </div>
-              <span className="font-semibold">
-                R$ {category.amount.toFixed(2)}
+              <div className="bg-gradient-to-br from-green-100 to-green-200 p-4 rounded-xl">
+                <TrendingUp className="text-green-600 w-8 h-8" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-red-600 text-sm font-medium uppercase tracking-wide">
+                  Despesas
+                </p>
+                <h3 className="text-3xl font-bold text-red-700 mt-2">
+                  R$ {summary.totalExpenses.toFixed(2)}
+                </h3>
+                <p className="text-sm text-red-600 mt-1 flex items-center">
+                  <span className="mr-1">↘️</span>
+                  Este mês
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-red-100 to-red-200 p-4 rounded-xl">
+                <TrendingDown className="text-red-600 w-8 h-8" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-600 text-sm font-medium uppercase tracking-wide">
+                  Transações
+                </p>
+                <h3 className="text-3xl font-bold text-blue-700 mt-2">
+                  {summary.transactionCount}
+                </h3>
+                <p className="text-sm text-blue-600 mt-1 flex items-center">
+                  <span className="mr-1">📊</span>
+                  Total
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-4 rounded-xl">
+                <Activity className="text-blue-600 w-8 h-8" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Transações Recentes */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-800 flex items-center">
+              <span className="mr-3 text-2xl">🕒</span>
+              Transações Recentes
+            </h3>
+            <div className="bg-gradient-to-r from-blue-100 to-purple-100 px-4 py-2 rounded-full">
+              <span className="text-sm font-medium text-blue-700">
+                Últimas {recentTransactions.length}
               </span>
             </div>
-          ))}
-          {summary.topCategories.length === 0 && (
-            <p className="text-gray-500 text-center py-4">
-              Nenhuma categoria encontrada
-            </p>
-          )}
+          </div>
+          <div className="space-y-3">
+            {recentTransactions.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">📋</div>
+                <p className="text-gray-500 text-lg">
+                  Nenhuma transação encontrada
+                </p>
+                <p className="text-gray-400 mt-2">
+                  Comece criando sua primeira transação!
+                </p>
+              </div>
+            ) : (
+              recentTransactions.map((transaction, index) => (
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between p-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 rounded-xl transition-all duration-300 border border-gray-100 hover:border-blue-200 hover:shadow-md"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="flex items-center space-x-4">
+                    <div
+                      className="w-4 h-4 rounded-full ring-2 ring-white shadow-lg"
+                      style={{
+                        backgroundColor:
+                          transaction.category?.color || "#CBD5E0",
+                      }}
+                    />
+                    <div>
+                      <p className="font-semibold text-gray-900 text-lg">
+                        {transaction.description}
+                      </p>
+                      <div className="flex items-center space-x-3 mt-1">
+                        <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                          {transaction.category?.name || "Sem categoria"}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          {new Date(transaction.date).toLocaleDateString(
+                            "pt-BR"
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span
+                      className={`font-bold text-xl ${
+                        transaction.type === "income"
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {transaction.type === "income" ? "+" : "-"} R$
+                      {Math.abs(transaction.amount).toFixed(2)}
+                    </span>
+                    <div
+                      className={`text-xs font-medium mt-1 px-2 py-1 rounded-full inline-block ${
+                        transaction.type === "income"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {transaction.type === "income" ? "RECEITA" : "DESPESA"}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>
