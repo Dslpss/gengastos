@@ -5,6 +5,7 @@ import {
   type Transaction,
 } from "../lib/supabaseApi";
 import { useEventBus, EVENTS } from "../lib/eventBus";
+import { useNotifications } from "../hooks/useNotifications";
 import {
   X,
   DollarSign,
@@ -33,6 +34,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const { emit } = useEventBus();
+  const { addBudgetAlert, addUnusualTransactionAlert } = useNotifications();
 
   const [formData, setFormData] = useState({
     amount: "",
@@ -132,6 +134,15 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         transaction = await apiService.createTransaction(transactionData);
         toast.success("Transação criada com sucesso!");
         emit(EVENTS.TRANSACTION_CREATED, transaction);
+
+        // Verificar alertas para novas transações
+        if (formData.type === "expense") {
+          // Verificar se orçamento foi estourado
+          await addBudgetAlert(formData.category_id, amount);
+        }
+
+        // Verificar transação incomum
+        await addUnusualTransactionAlert(amount, formData.type);
       }
 
       // Emitir evento para refresh do dashboard

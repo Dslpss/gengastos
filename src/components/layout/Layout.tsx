@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useAuthStore } from "../../stores/authStore";
+import NotificationPanel from "../ui/NotificationPanel";
 
 interface LayoutProps {
   children: ReactNode;
@@ -133,15 +134,16 @@ const Layout = ({ children }: LayoutProps) => {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile header */}
-        <div className="md:hidden bg-white border-b px-4 py-3 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">GenGastos</h1>
+        {/* Topbar com painel de notificações */}
+        <div className="flex items-center justify-between md:hidden bg-white border-b px-4 py-3 shadow-sm">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+              <DollarSign className="h-5 w-5 text-white" />
             </div>
+            <h1 className="text-xl font-bold text-gray-900">GenGastos</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <NotificationPanel />
             <button
               onClick={() => setSidebarOpen(true)}
               className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
@@ -149,6 +151,11 @@ const Layout = ({ children }: LayoutProps) => {
               <Menu className="h-6 w-6" />
             </button>
           </div>
+        </div>
+
+        {/* Desktop: painel de notificações no topo */}
+        <div className="hidden md:flex items-center justify-end bg-white border-b px-6 py-3 shadow-sm">
+          <NotificationPanel />
         </div>
 
         {/* Page content */}

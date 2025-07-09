@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { apiService, type UserSettings } from "../lib/supabaseApi";
 import { useEventBus, EVENTS } from "../lib/eventBus";
+import { useNotifications } from "../hooks/useNotifications";
 import { TrendingUp, TrendingDown, DollarSign, Activity } from "lucide-react";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import toast from "react-hot-toast";
@@ -30,6 +31,7 @@ interface Summary {
 
 export default function Dashboard() {
   const { on } = useEventBus();
+  const { checkAllSmartNotifications } = useNotifications();
 
   // Estados
   const [summary, setSummary] = useState<Summary>(() => {
@@ -253,6 +255,35 @@ export default function Dashboard() {
     };
   }, [on, loadDashboardData, loadUserSettings]);
 
+  // Verificar notificações inteligentes após carregar dados
+  useEffect(() => {
+    let hasRun = false; // Flag para evitar execuções múltiplas
+
+    const checkSmartNotifications = async () => {
+      // Só verificar se temos dados carregados e ainda não executou
+      if (!loading && !salaryLoading && userSettings && !hasRun) {
+        hasRun = true; // Marcar como executado
+
+        console.log(
+          "🔍 Verificando notificações inteligentes baseadas no banco..."
+        );
+
+        // Verificar TODAS as notificações baseadas no banco de dados
+        const alertCount = await checkAllSmartNotifications();
+
+        if (alertCount > 0) {
+          toast.success(
+            `${alertCount} notificação(ões) importante(s) detectada(s)!`
+          );
+        } else {
+          console.log("✅ Nenhuma notificação pendente");
+        }
+      }
+    };
+
+    checkSmartNotifications();
+  }, [loading, salaryLoading, userSettings]); // Removida a dependência que causava loop
+
   if (loading || salaryLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -301,13 +332,17 @@ export default function Dashboard() {
       {/* Header com gradiente */}
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white p-6 rounded-b-3xl shadow-xl mb-8">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2 flex items-center">
-            <span className="mr-3 text-4xl">📊</span>
-            Dashboard Financeiro
-          </h1>
-          <p className="text-blue-100 text-lg">
-            Bem-vindo ao seu centro de controle financeiro
-          </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold mb-2 flex items-center">
+                <span className="mr-3 text-4xl">📊</span>
+                Dashboard Financeiro
+              </h1>
+              <p className="text-blue-100 text-lg">
+                Bem-vindo ao seu centro de controle financeiro
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -685,6 +685,268 @@ class SupabaseApiService {
 
     if (error) throw new Error(error.message);
   }
+
+  // Notification System
+  async checkBudgetOverage(categoryId: string, amount: number) {
+    const user = await this.getCurrentUser();
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+
+    // Buscar orçamento para a categoria
+    const { data: budget } = await supabase
+      .from("budgets")
+      .select("*, category:categories(*)")
+      .eq("user_id", user.id)
+      .eq("category_id", categoryId)
+      .eq("month", currentMonth)
+      .eq("year", currentYear)
+      .single();
+
+    if (!budget) return null;
+
+    // Calcular gasto total da categoria no mês
+    const { data: transactions } = await supabase
+      .from("transactions")
+      .select("amount")
+      .eq("user_id", user.id)
+      .eq("category_id", categoryId)
+      .eq("type", "expense")
+      .gte(
+        "date",
+        `${currentYear}-${currentMonth.toString().padStart(2, "0")}-01`
+      )
+      .lt(
+        "date",
+        `${currentYear}-${(currentMonth + 1).toString().padStart(2, "0")}-01`
+      );
+
+    const totalSpent = (transactions || []).reduce(
+      (sum, t) => sum + t.amount,
+      0
+    );
+    const newTotal = totalSpent + amount;
+
+    if (newTotal > budget.amount) {
+      return {
+        type: "budget_exceeded" as const,
+        title: "🚨 Orçamento Estourado!",
+        message: `Categoria "${budget.category.name}": R$ ${newTotal.toFixed(
+          2
+        )} de R$ ${budget.amount.toFixed(2)}`,
+        icon: "⚠️",
+        data: { categoryId, budgetAmount: budget.amount, totalSpent: newTotal },
+      };
+    }
+
+    return null;
+  }
+
+  async checkLowBalance(currentBalance: number) {
+    // Buscar configurações do usuário para definir um threshold inteligente
+    const settings = await this.getUserSettings();
+
+    if (!settings || settings.salary <= 0) {
+      // Se não há salário definido, usar valor fixo baixo
+      const threshold = 100;
+      if (currentBalance < threshold) {
+        return {
+          type: "low_balance" as const,
+          title: "💰 Saldo Baixo",
+          message: `Seu saldo está baixo: R$ ${currentBalance.toFixed(
+            2
+          )}. Considere revisar seus gastos.`,
+          icon: "⚠️",
+          data: { balance: currentBalance, threshold },
+        };
+      }
+      return null;
+    }
+
+    // Usar 10% do salário como threshold mínimo (ou R$ 200, o que for maior)
+    const salaryThreshold = settings.salary * 0.1;
+    const threshold = Math.max(salaryThreshold, 200);
+
+    if (currentBalance < threshold) {
+      return {
+        type: "low_balance" as const,
+        title: "💰 Saldo Baixo",
+        message: `Seu saldo está baixo: R$ ${currentBalance.toFixed(
+          2
+        )}. Meta recomendada: R$ ${threshold.toFixed(2)} (10% do salário).`,
+        icon: "⚠️",
+        data: { balance: currentBalance, threshold, salaryBased: true },
+      };
+    }
+
+    return null;
+  }
+
+  async checkUnusualTransaction(amount: number, type: "income" | "expense") {
+    const user = await this.getCurrentUser();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Buscar transações dos últimos 30 dias do mesmo tipo
+    const { data: recentTransactions } = await supabase
+      .from("transactions")
+      .select("amount")
+      .eq("user_id", user.id)
+      .eq("type", type)
+      .gte("date", thirtyDaysAgo.toISOString().split("T")[0]);
+
+    if (!recentTransactions || recentTransactions.length < 5) return null;
+
+    // Calcular média das transações
+    const average =
+      recentTransactions.reduce((sum, t) => sum + t.amount, 0) /
+      recentTransactions.length;
+    const threshold = average * 3; // 3x a média
+
+    if (amount > threshold) {
+      const typeText = type === "expense" ? "gasto" : "receita";
+      return {
+        type: "unusual_transaction" as const,
+        title: `🤔 ${type === "expense" ? "Gasto" : "Receita"} Incomum`,
+        message: `Este ${typeText} de R$ ${amount.toFixed(
+          2
+        )} é muito acima da sua média (R$ ${average.toFixed(2)}).`,
+        icon: "🧐",
+        data: { amount, average, type },
+      };
+    }
+
+    return null;
+  }
+
+  async checkUpcomingBills() {
+    // Esta seria uma funcionalidade mais avançada que requereria
+    // uma tabela de contas recorrentes. Por enquanto, retorna exemplo
+    const today = new Date();
+    const dayOfMonth = today.getDate();
+
+    // Simulação: avisar próximo ao dia 25 (exemplo: aluguel)
+    if (dayOfMonth >= 23 && dayOfMonth <= 25) {
+      return {
+        type: "upcoming_bill" as const,
+        title: "📅 Lembrete de Conta",
+        message:
+          "Lembre-se: algumas contas importantes vencem no final do mês!",
+        icon: "⏰",
+        data: { day: dayOfMonth },
+      };
+    }
+
+    return null;
+  }
+
+  // Função para calcular o saldo real atual baseado no banco de dados
+  async calculateCurrentBalance() {
+    const user = await this.getCurrentUser();
+
+    // 1. Buscar configurações do usuário (salário + extras)
+    const settings = await this.getUserSettings();
+    const initialBalance = settings
+      ? settings.salary + (settings.total_extra_balance || 0)
+      : 0;
+
+    // 2. Buscar todas as transações
+    const { data: transactions } = await supabase
+      .from("transactions")
+      .select("amount, type")
+      .eq("user_id", user.id);
+
+    if (!transactions) return initialBalance;
+
+    // 3. Calcular saldo atual
+    const totalIncome = transactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const totalExpenses = transactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return initialBalance + totalIncome - totalExpenses;
+  }
+
+  // Função inteligente para verificar todas as notificações baseadas no banco
+  async checkAllNotifications() {
+    try {
+      const notifications = [];
+
+      // 1. Verificar saldo baixo com dados reais
+      const currentBalance = await this.calculateCurrentBalance();
+      const lowBalanceAlert = await this.checkLowBalance(currentBalance);
+      if (lowBalanceAlert) notifications.push(lowBalanceAlert);
+
+      // 2. Verificar contas próximas do vencimento
+      const upcomingBillAlert = await this.checkUpcomingBills();
+      if (upcomingBillAlert) notifications.push(upcomingBillAlert);
+
+      // 3. Verificar orçamentos estourados (para todas as categorias)
+      const user = await this.getCurrentUser();
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+
+      // Buscar todos os orçamentos do mês atual
+      const { data: budgets } = await supabase
+        .from("budgets")
+        .select("*, category:categories(*)")
+        .eq("user_id", user.id)
+        .eq("month", currentMonth)
+        .eq("year", currentYear);
+
+      if (budgets) {
+        for (const budget of budgets) {
+          // Calcular gasto total da categoria no mês
+          const { data: transactions } = await supabase
+            .from("transactions")
+            .select("amount")
+            .eq("user_id", user.id)
+            .eq("category_id", budget.category_id)
+            .eq("type", "expense")
+            .gte(
+              "date",
+              `${currentYear}-${currentMonth.toString().padStart(2, "0")}-01`
+            )
+            .lt(
+              "date",
+              `${currentYear}-${(currentMonth + 1)
+                .toString()
+                .padStart(2, "0")}-01`
+            );
+
+          const totalSpent = (transactions || []).reduce(
+            (sum, t) => sum + t.amount,
+            0
+          );
+
+          if (totalSpent > budget.amount) {
+            notifications.push({
+              type: "budget_exceeded" as const,
+              title: "🚨 Orçamento Estourado!",
+              message: `Categoria "${
+                budget.category.name
+              }": R$ ${totalSpent.toFixed(2)} de R$ ${budget.amount.toFixed(
+                2
+              )}`,
+              icon: "⚠️",
+              data: {
+                categoryId: budget.category_id,
+                budgetAmount: budget.amount,
+                totalSpent,
+              },
+            });
+          }
+        }
+      }
+
+      return notifications;
+    } catch (error) {
+      console.error("Erro ao verificar notificações:", error);
+      return [];
+    }
+  }
 }
 
 export const apiService = new SupabaseApiService();
