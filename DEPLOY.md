@@ -15,6 +15,7 @@ gengastos/
 ## 🌐 Deploy do Frontend (Netlify)
 
 ### 1. Pré-requisitos
+
 - [ ] Projeto no GitHub
 - [ ] Conta no [Netlify](https://netlify.com)
 
@@ -39,6 +40,7 @@ VITE_API_URL=https://seu-backend.onrender.com
 ```
 
 ### 4. Deploy
+
 - Clique em **Deploy site**
 - Aguarde o build terminar
 - Seu site estará disponível em `https://seu-site.netlify.app`
@@ -48,6 +50,7 @@ VITE_API_URL=https://seu-backend.onrender.com
 ## ⚙️ Deploy do Backend (Render)
 
 ### 1. Pré-requisitos
+
 - [ ] Mesmo repositório no GitHub
 - [ ] Conta no [Render](https://render.com)
 
@@ -76,6 +79,7 @@ NODE_ENV=production
 ```
 
 ### 4. Deploy
+
 - Clique em **Create Web Service**
 - Aguarde o build terminar
 - Seu backend estará disponível em `https://seu-backend.onrender.com`
@@ -90,17 +94,20 @@ Certifique-se de que seu backend aceita requisições do frontend:
 
 ```javascript
 // backend/src/index.js
-const cors = require('cors');
+const cors = require("cors");
 
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || "*",
+    credentials: true,
+  })
+);
 ```
 
 ### Redirecionamentos (Netlify)
 
 O arquivo `netlify.toml` já está configurado para:
+
 - Fazer proxy das chamadas `/api/*` para o backend
 - Servir o frontend para todas as rotas (SPA)
 
@@ -110,8 +117,8 @@ Adicione uma rota de health check no seu backend:
 
 ```javascript
 // backend/src/index.js
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+app.get("/health", (req, res) => {
+  res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 ```
 
@@ -120,18 +127,21 @@ app.get('/health', (req, res) => {
 ## 📋 Checklist Final
 
 ### Frontend (Netlify)
+
 - [ ] Site buildando sem erros
 - [ ] Variáveis de ambiente configuradas
 - [ ] Site acessível via HTTPS
 - [ ] Rotas funcionando (SPA)
 
 ### Backend (Render)
+
 - [ ] Serviço rodando sem erros
 - [ ] Variáveis de ambiente configuradas
 - [ ] CORS configurado para o domínio do Netlify
 - [ ] API acessível via HTTPS
 
 ### Integração
+
 - [ ] Frontend consegue fazer chamadas para o backend
 - [ ] Autenticação Supabase funcionando
 - [ ] Banco de dados acessível
@@ -142,6 +152,7 @@ app.get('/health', (req, res) => {
 ## 🆘 Troubleshooting
 
 ### Erro de Build no Netlify
+
 ```bash
 # Verifique se as dependências estão corretas
 npm install
@@ -149,17 +160,20 @@ npm run build
 ```
 
 ### Erro de CORS
+
 ```javascript
 // Adicione o domínio correto no backend
 CORS_ORIGIN=https://seu-site-real.netlify.app
 ```
 
 ### Erro de Conexão com Supabase
+
 - Verifique se as URLs e chaves estão corretas
 - Confirme se o projeto Supabase está ativo
 - Teste as credenciais no dashboard do Supabase
 
 ### Backend não inicia no Render
+
 - Verifique se o `package.json` tem o script `start`
 - Confirme se a porta está configurada corretamente
 - Veja os logs no painel do Render
@@ -174,6 +188,7 @@ Após seguir todos os passos, seu projeto estará online:
 - **Backend:** `https://seu-backend.onrender.com`
 
 ### Próximos Passos
+
 1. Configure um domínio personalizado (opcional)
 2. Configure monitoramento e alertas
 3. Implemente CI/CD automático
