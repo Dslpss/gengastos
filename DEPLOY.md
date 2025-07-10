@@ -39,6 +39,8 @@ VITE_SUPABASE_ANON_KEY=sua-chave-anon-aqui
 VITE_API_URL=https://seu-backend.onrender.com
 ```
 
+**✅ SINTAXE CORRIGIDA**: O arquivo `netlify.toml` foi corrigido para usar a sintaxe TOML correta com `[build.environment]`.
+
 ### 4. Deploy
 
 - Clique em **Deploy site**
@@ -180,6 +182,27 @@ CORS_ORIGIN=https://seu-site-real.netlify.app
 
 ---
 
+## 🔗 Integração Frontend + Backend
+
+### 1. Após o Deploy do Frontend
+1. Copie a URL do seu site Netlify (ex: `https://amazing-site-123456.netlify.app`)
+2. Vá no painel do Render e atualize a variável `CORS_ORIGIN` com essa URL
+3. Reinicie o serviço backend no Render
+
+### 2. Após o Deploy do Backend
+1. Copie a URL do seu backend Render (ex: `https://gengastos-backend.onrender.com`)
+2. Vá no painel do Netlify e atualize `VITE_API_URL` com essa URL
+3. Faça um redeploy do frontend no Netlify
+
+### 3. Teste a Integração
+- Acesse seu site
+- Tente fazer login
+- Verifique se as transações carregam
+- Teste criar uma nova transação
+- Verificar se as notificações funcionam
+
+---
+
 ## 🎉 Pronto!
 
 Após seguir todos os passos, seu projeto estará online:
@@ -189,10 +212,12 @@ Após seguir todos os passos, seu projeto estará online:
 
 ### Próximos Passos
 
-1. Configure um domínio personalizado (opcional)
-2. Configure monitoramento e alertas
-3. Implemente CI/CD automático
-4. Configure backups regulares
+1. ✅ **Correção da sintaxe do netlify.toml concluída**
+2. 🚀 **Deploy do frontend no Netlify**
+3. 🔗 **Atualizar CORS_ORIGIN no backend após obter URL real**
+4. ✅ **Testar integração completa**
+5. 📊 **Validar sistema de notificações em produção**
+6. 🎨 **Configurar domínio personalizado (opcional)**
 
 ---
 

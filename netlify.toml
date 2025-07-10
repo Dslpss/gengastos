@@ -2,11 +2,10 @@
   command = "npm run build"
   publish = "dist"
 
-env = { 
-  VITE_API_URL = "https://seu-backend.onrender.com",
-  VITE_SUPABASE_URL = "https://xxxx.supabase.co",
+[build.environment]
+  VITE_API_URL = "https://seu-backend.onrender.com"
+  VITE_SUPABASE_URL = "https://xxxx.supabase.co"
   VITE_SUPABASE_ANON_KEY = "xxxxxx"
-}
 
 [[redirects]]
   from = "/api/*"
