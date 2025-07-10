@@ -185,16 +185,19 @@ CORS_ORIGIN=https://seu-site-real.netlify.app
 ## 🔗 Integração Frontend + Backend
 
 ### 1. Após o Deploy do Frontend
+
 1. Copie a URL do seu site Netlify (ex: `https://amazing-site-123456.netlify.app`)
 2. Vá no painel do Render e atualize a variável `CORS_ORIGIN` com essa URL
 3. Reinicie o serviço backend no Render
 
 ### 2. Após o Deploy do Backend
+
 1. Copie a URL do seu backend Render (ex: `https://gengastos-backend.onrender.com`)
 2. Vá no painel do Netlify e atualize `VITE_API_URL` com essa URL
 3. Faça um redeploy do frontend no Netlify
 
 ### 3. Teste a Integração
+
 - Acesse seu site
 - Tente fazer login
 - Verifique se as transações carregam
