@@ -6,7 +6,6 @@ const NotificationPanel: React.FC = () => {
   const { notifications, markAsRead, clearNotifications, unreadCount } =
     useNotificationStore();
   const [open, setOpen] = React.useState(false);
-  const [showConfirmModal, setShowConfirmModal] = React.useState(false);
   const panelRef = React.useRef<HTMLDivElement>(null);
 
   // Fecha o painel ao clicar fora
@@ -26,19 +25,15 @@ const NotificationPanel: React.FC = () => {
 
   // Fecha ao pressionar ESC
   React.useEffect(() => {
-    if (!open && !showConfirmModal) return;
+    if (!open) return;
     function handleEscKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        if (showConfirmModal) {
-          setShowConfirmModal(false);
-        } else {
-          setOpen(false);
-        }
+        setOpen(false);
       }
     }
     document.addEventListener("keydown", handleEscKey);
     return () => document.removeEventListener("keydown", handleEscKey);
-  }, [open, showConfirmModal]);
+  }, [open]);
 
   return (
     <div className="relative" ref={panelRef}>
@@ -99,24 +94,13 @@ const NotificationPanel: React.FC = () => {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              {notifications.length > 0 && (
-                <button
-                  className="text-xs text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded-md transition-colors duration-200 font-medium"
-                  onClick={() => setShowConfirmModal(true)}
-                  title="Limpar todas as notificações"
-                >
-                  Limpar todas
-                </button>
-              )}
-              <button
-                className="p-1.5 hover:bg-white hover:bg-opacity-60 rounded-lg transition-colors duration-200"
-                onClick={() => setOpen(false)}
-                aria-label="Fechar"
-              >
-                <X className="w-4 h-4 text-gray-600" />
-              </button>
-            </div>
+            <button
+              className="p-1.5 hover:bg-white hover:bg-opacity-60 rounded-lg transition-colors duration-200"
+              onClick={() => setOpen(false)}
+              aria-label="Fechar"
+            >
+              <X className="w-4 h-4 text-gray-600" />
+            </button>
           </div>
           <div className="max-h-80 overflow-y-auto divide-y scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {notifications.length === 0 ? (
@@ -193,84 +177,13 @@ const NotificationPanel: React.FC = () => {
               </span>
               <button
                 className="text-xs text-red-600 hover:text-red-800 hover:underline font-medium"
-                onClick={() => setShowConfirmModal(true)}
+                onClick={clearNotifications}
               >
-                🗑️ Limpar todas
+                Limpar todas
               </button>
             </div>
           )}
         </div>
-      )}
-
-      {/* Modal de Confirmação Estilizado */}
-      {showConfirmModal && (
-        <>
-          {/* Overlay */}
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-red-50 to-orange-50 px-6 py-4 border-b">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                    <span className="text-2xl">🗑️</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">
-                      Limpar Notificações
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Esta ação não pode ser desfeita
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="px-6 py-6">
-                <p className="text-gray-700 mb-4">
-                  Tem certeza que deseja remover todas as{" "}
-                  <span className="font-bold text-red-600">
-                    {notifications.length}
-                  </span>{" "}
-                  notificações?
-                </p>
-
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                  <div className="flex items-start gap-2">
-                    <span className="text-amber-600 text-lg">⚠️</span>
-                    <div className="text-sm text-amber-800">
-                      <p className="font-medium">Atenção:</p>
-                      <p>
-                        Todas as notificações (lidas e não lidas) serão
-                        removidas permanentemente.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="bg-gray-50 px-6 py-4 flex gap-3 justify-end">
-                <button
-                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
-                  onClick={() => setShowConfirmModal(false)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium shadow-lg hover:shadow-xl"
-                  onClick={() => {
-                    clearNotifications();
-                    setShowConfirmModal(false);
-                    setOpen(false); // Fecha o painel também
-                  }}
-                >
-                  🗑️ Sim, limpar todas
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
       )}
     </div>
   );

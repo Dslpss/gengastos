@@ -2,30 +2,13 @@ import { useNotificationStore } from "../stores/notificationStore";
 import { apiService } from "../lib/supabaseApi";
 
 export const useNotifications = () => {
-  const { addNotification, notifications } = useNotificationStore();
+  const { addNotification } = useNotificationStore();
 
   const generateId = () => crypto.randomUUID();
 
-  // Função para verificar se já existe notificação similar
-  const hasRecentNotification = (
-    type: string,
-    message: string,
-    minutesAgo = 5
-  ) => {
-    const now = new Date();
-    const timeThreshold = new Date(now.getTime() - minutesAgo * 60 * 1000);
-
-    return notifications.some(
-      (notification) =>
-        notification.type === type &&
-        notification.message === message &&
-        new Date(notification.timestamp) > timeThreshold
-    );
-  };
-
   const addBudgetAlert = async (categoryId: string, amount: number) => {
     const alert = await apiService.checkBudgetOverage(categoryId, amount);
-    if (alert && !hasRecentNotification(alert.type, alert.message)) {
+    if (alert) {
       addNotification({
         id: generateId(),
         type: alert.type,
@@ -44,7 +27,7 @@ export const useNotifications = () => {
     type: "income" | "expense"
   ) => {
     const alert = await apiService.checkUnusualTransaction(amount, type);
-    if (alert && !hasRecentNotification(alert.type, alert.message)) {
+    if (alert) {
       addNotification({
         id: generateId(),
         type: alert.type,
@@ -62,29 +45,22 @@ export const useNotifications = () => {
   const checkAllSmartNotifications = async () => {
     try {
       const alerts = await apiService.checkAllNotifications();
-      let addedCount = 0;
 
       alerts.forEach((alert) => {
-        // Só adiciona se não tiver notificação similar recente
-        if (!hasRecentNotification(alert.type, alert.message)) {
-          addNotification({
-            id: generateId(),
-            type: alert.type,
-            title: alert.title,
-            message: alert.message,
-            timestamp: new Date().toISOString(),
-            read: false,
-            icon: alert.icon,
-            data: alert.data,
-          });
-          addedCount++;
-        }
+        addNotification({
+          id: generateId(),
+          type: alert.type,
+          title: alert.title,
+          message: alert.message,
+          timestamp: new Date().toISOString(),
+          read: false,
+          icon: alert.icon,
+          data: alert.data,
+        });
       });
 
-      console.log(
-        `🔔 ${addedCount} novas notificações de ${alerts.length} verificadas`
-      );
-      return addedCount; // Retorna quantas notificações foram criadas
+      console.log(`🔔 ${alerts.length} notificações inteligentes verificadas`);
+      return alerts.length; // Retorna quantas notificações foram criadas
     } catch (error) {
       console.error("Erro ao verificar notificações inteligentes:", error);
       return 0;
@@ -99,7 +75,7 @@ export const useNotifications = () => {
 
       console.log(`💰 Saldo atual calculado: R$ ${currentBalance.toFixed(2)}`);
 
-      if (alert && !hasRecentNotification(alert.type, alert.message)) {
+      if (alert) {
         addNotification({
           id: generateId(),
           type: alert.type,

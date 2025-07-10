@@ -257,13 +257,9 @@ export default function Dashboard() {
 
   // Verificar notificações inteligentes após carregar dados
   useEffect(() => {
-    let hasRun = false; // Flag para evitar execuções múltiplas
-
     const checkSmartNotifications = async () => {
-      // Só verificar se temos dados carregados e ainda não executou
-      if (!loading && !salaryLoading && userSettings && !hasRun) {
-        hasRun = true; // Marcar como executado
-
+      // Só verificar se temos dados carregados
+      if (!loading && !salaryLoading && userSettings) {
         console.log(
           "🔍 Verificando notificações inteligentes baseadas no banco..."
         );
@@ -282,7 +278,7 @@ export default function Dashboard() {
     };
 
     checkSmartNotifications();
-  }, [loading, salaryLoading, userSettings]); // Removida a dependência que causava loop
+  }, [loading, salaryLoading, userSettings, checkAllSmartNotifications]);
 
   if (loading || salaryLoading) {
     return (

@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: gengastos-backend
+    env: node
+    plan: free
+    rootDir: .
+    buildCommand: "npm install"
+    startCommand: "npm start"
+    envVars:
+      - key: SUPABASE_URL
+        value: https://xxxx.supabase.co
+      - key: SUPABASE_SERVICE_KEY
+        value: xxxxxx
+      - key: CORS_ORIGIN
+        value: https://seu-site.netlify.app
+      # Adicione outras variáveis conforme necessário
