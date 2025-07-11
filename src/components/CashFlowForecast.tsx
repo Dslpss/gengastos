@@ -205,6 +205,20 @@ const CashFlowForecast: React.FC<CashFlowForecastProps> = ({
     }).format(value);
   };
 
+  // Função específica para formatação compacta nos gráficos (mobile-friendly)
+  const formatCurrencyCompact = (value: number) => {
+    const absValue = Math.abs(value);
+    const sign = value < 0 ? "-" : "";
+
+    if (absValue >= 1000000) {
+      return `${sign}R$ ${(absValue / 1000000).toFixed(1).replace(".", ",")}M`;
+    } else if (absValue >= 1000) {
+      return `${sign}R$ ${(absValue / 1000).toFixed(1).replace(".", ",")}K`;
+    } else {
+      return `${sign}R$ ${absValue.toFixed(0)}`;
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("pt-BR", {
@@ -338,7 +352,9 @@ const CashFlowForecast: React.FC<CashFlowForecastProps> = ({
         summary.daysUntilNegative < forecastDays && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 mb-6">
             <div className="flex items-start">
-              <span className="text-red-500 text-lg mr-2 mt-0.5 flex-shrink-0">⚠️</span>
+              <span className="text-red-500 text-lg mr-2 mt-0.5 flex-shrink-0">
+                ⚠️
+              </span>
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-red-800 text-sm sm:text-base">
                   Alerta de Saldo Negativo
@@ -355,9 +371,13 @@ const CashFlowForecast: React.FC<CashFlowForecastProps> = ({
       {summary && summary.averageDailyChange > 0 && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 mb-6">
           <div className="flex items-start">
-            <span className="text-green-500 text-lg mr-2 mt-0.5 flex-shrink-0">✅</span>
+            <span className="text-green-500 text-lg mr-2 mt-0.5 flex-shrink-0">
+              ✅
+            </span>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-green-800 text-sm sm:text-base">Tendência Positiva</p>
+              <p className="font-semibold text-green-800 text-sm sm:text-base">
+                Tendência Positiva
+              </p>
               <p className="text-xs sm:text-sm text-green-600 mt-1">
                 Seu saldo está crescendo em média{" "}
                 {formatCurrency(summary.averageDailyChange)} por dia.
@@ -375,12 +395,13 @@ const CashFlowForecast: React.FC<CashFlowForecastProps> = ({
             <XAxis
               dataKey="date"
               tickFormatter={formatDate}
-              tick={{ fontSize: 10 }}
+              tick={{ fontSize: 8 }}
               interval="preserveStartEnd"
             />
             <YAxis
-              tickFormatter={(value) => formatCurrency(value)}
-              tick={{ fontSize: 12 }}
+              tickFormatter={(value) => formatCurrencyCompact(value)}
+              tick={{ fontSize: 10 }}
+              width={60}
             />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="2 2" />

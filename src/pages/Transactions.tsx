@@ -533,8 +533,8 @@ export default function Transactions() {
               </div>
             ) : (
               <div className="min-w-full">
-                {/* Header da Tabela */}
-                <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+                {/* Header da Tabela - Apenas Desktop */}
+                <div className="hidden md:block bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-b border-gray-200">
                   <div className="grid grid-cols-6 gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
@@ -559,11 +559,12 @@ export default function Transactions() {
                   {transactions.map((transaction, index) => (
                     <div
                       key={transaction.id}
-                      className={`px-6 py-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-200 ${
+                      className={`hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-all duration-200 ${
                         index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
                       }`}
                     >
-                      <div className="grid grid-cols-6 gap-4 items-center">
+                      {/* Layout Desktop - Tabela */}
+                      <div className="hidden md:grid grid-cols-6 gap-4 items-center px-6 py-4">
                         {/* Data */}
                         <div className="text-sm text-gray-900 font-medium">
                           {formatDate(transaction.date)}
@@ -629,6 +630,85 @@ export default function Transactions() {
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
+                        </div>
+                      </div>
+
+                      {/* Layout Mobile - Card */}
+                      <div className="md:hidden p-4 space-y-3">
+                        {/* Cabeçalho do Card */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-900">
+                              {formatDate(transaction.date)}
+                            </span>
+                          </div>
+                          <div
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              transaction.type === "income"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {transaction.type === "income"
+                              ? "💚 Receita"
+                              : "❤️ Despesa"}
+                          </div>
+                        </div>
+
+                        {/* Descrição */}
+                        <div className="font-medium text-gray-900 text-lg">
+                          {transaction.description || "Sem descrição"}
+                        </div>
+
+                        {/* Detalhes em Grid */}
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Tag className="w-4 h-4 text-gray-500" />
+                            <span className="text-gray-700">
+                              {getCategoryName(transaction)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-gray-500" />
+                            <span className="text-gray-700">
+                              {getPaymentMethodName(transaction.payment_method)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Valor e Ações */}
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                          <div className="text-lg font-bold">
+                            <span
+                              className={`px-4 py-2 rounded-lg ${
+                                transaction.type === "income"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {transaction.type === "income" ? "+" : "-"}
+                              {formatCurrency(transaction.amount)}
+                            </span>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleEditTransaction(transaction)}
+                              className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-all duration-200"
+                              title="Editar transação"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleDeleteTransaction(transaction.id)
+                              }
+                              className="p-2 text-red-600 hover:text-red-900 hover:bg-red-100 rounded-lg transition-all duration-200"
+                              title="Excluir transação"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>

@@ -276,33 +276,32 @@ export default function Categories() {
               )}
             </div>
           ) : (
-            <div className="p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4">
                 {filteredCategories.map((category) => (
                   <div
                     key={category.id}
-                    className="group bg-white rounded-xl border border-gray-200 hover:border-purple-300 p-4 hover:shadow-lg transition-all duration-200 hover:scale-105"
+                    className="group bg-white rounded-xl border border-gray-200 hover:border-purple-300 p-3 sm:p-4 hover:shadow-lg transition-all duration-200 hover:scale-105"
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold text-lg"
-                          style={{ backgroundColor: category.color }}
-                        >
-                          {category.icon}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
-                            {category.name}
-                          </h3>
-                        </div>
+                    <div className="flex flex-col items-center text-center mb-3">
+                      <div
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center text-white font-semibold text-lg sm:text-xl mb-2"
+                        style={{ backgroundColor: category.color }}
+                      >
+                        {category.icon}
                       </div>
+                      <h3 className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors text-sm sm:text-base leading-tight">
+                        {category.name}
+                      </h3>
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
                       <div className="flex items-center gap-2 text-xs text-gray-500">
                         <Palette className="w-3 h-3" />
-                        <span style={{ color: category.color }}>
+                        <span
+                          style={{ color: category.color }}
+                          className="text-xs"
+                        >
                           {category.color}
                         </span>
                       </div>

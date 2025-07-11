@@ -347,8 +347,8 @@ export default function Budgets() {
             </div>
           ) : (
             <div>
-              {/* Header da Lista */}
-              <div className="bg-gradient-to-r from-gray-50 to-purple-50 px-6 py-4 border-b border-gray-200">
+              {/* Header da Lista - Desktop */}
+              <div className="hidden md:block bg-gradient-to-r from-gray-50 to-purple-50 px-6 py-4 border-b border-gray-200">
                 <div className="grid grid-cols-5 gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
                     <Target className="w-4 h-4" />
@@ -367,8 +367,8 @@ export default function Budgets() {
                 </div>
               </div>
 
-              {/* Linhas da Lista */}
-              <div className="divide-y divide-gray-100">
+              {/* Linhas da Lista - Desktop */}
+              <div className="hidden md:block divide-y divide-gray-100">
                 {budgets.map((budget, index) => {
                   const budgetStatus = getBudgetStatus(budget);
                   const percentage =
@@ -465,6 +465,118 @@ export default function Budgets() {
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Lista Mobile - Cards */}
+              <div className="md:hidden p-4 space-y-4">
+                {budgets.map((budget, index) => {
+                  const budgetStatus = getBudgetStatus(budget);
+                  const percentage =
+                    ((budget.spent || 0) / budget.amount) * 100;
+                  const StatusIcon = budgetStatus.icon;
+
+                  return (
+                    <div
+                      key={budget.id}
+                      className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200"
+                    >
+                      {/* Header do Card */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`p-2 rounded-lg text-white bg-${budgetStatus.color}-500`}
+                          >
+                            <Target className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900">
+                              {getCategoryName(budget.category_id)}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {budget.category?.type === "income"
+                                ? "💚 Receita"
+                                : "❤️ Despesa"}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleEditBudget(budget)}
+                            className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-all duration-200"
+                            title="Editar orçamento"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBudget(budget.id)}
+                            className="p-2 text-red-600 hover:text-red-900 hover:bg-red-100 rounded-lg transition-all duration-200"
+                            title="Excluir orçamento"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Período */}
+                      <div className="mb-3">
+                        <div className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          {new Date(0, budget.month - 1).toLocaleDateString(
+                            "pt-BR",
+                            { month: "long" }
+                          )}{" "}
+                          de {budget.year}
+                        </div>
+                      </div>
+
+                      {/* Valores */}
+                      <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">
+                            Orçamento
+                          </div>
+                          <div className="text-lg font-bold text-gray-900">
+                            {formatCurrency(budget.amount)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">
+                            Gasto
+                          </div>
+                          <div className="text-lg font-bold text-gray-900">
+                            {formatCurrency(budget.spent || 0)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Progresso */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <StatusIcon
+                              className={`w-4 h-4 text-${budgetStatus.color}-500`}
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              {percentage.toFixed(1)}% usado
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-500">
+                            Restante:{" "}
+                            {formatCurrency(
+                              budget.amount - (budget.spent || 0)
+                            )}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className={`h-3 rounded-full transition-all duration-300 bg-${budgetStatus.color}-500`}
+                            style={{ width: `${Math.min(percentage, 100)}%` }}
+                          />
                         </div>
                       </div>
                     </div>
