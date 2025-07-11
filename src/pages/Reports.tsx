@@ -18,6 +18,7 @@ import {
   Activity,
 } from "lucide-react";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
+import CashFlowForecast from "../components/CashFlowForecast";
 import toast from "react-hot-toast";
 
 interface CategoryReport {
@@ -743,6 +744,24 @@ export default function Reports() {
             </div>
           </div>
         )}
+
+        {/* Seção de Previsão de Fluxo de Caixa */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 border-b border-gray-200/50">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg text-white">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+              <h3 className="font-semibold text-gray-900">
+                🔮 Previsão de Fluxo de Caixa
+              </h3>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <CashFlowForecast className="w-full" />
+          </div>
+        </div>
       </div>
     </div>
   );

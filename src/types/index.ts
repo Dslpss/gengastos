@@ -228,6 +228,33 @@ export interface CardProps {
   padding?: "none" | "small" | "medium" | "large";
 }
 
+// Cash Flow Forecast Types
+export interface CashFlowForecastPoint {
+  date: string;
+  balance: number;
+  change: number;
+  type: "current" | "projected";
+}
+
+export interface CashFlowForecastResponse {
+  currentBalance: number;
+  forecast: CashFlowForecastPoint[];
+  analysis: {
+    totalTransactions: number;
+    recurringCount: number;
+    forecastDays: number;
+  };
+}
+
+export interface ForecastSummary {
+  currentBalance: number;
+  projectedBalance: number;
+  highestBalance: number;
+  lowestBalance: number;
+  daysUntilNegative: number | null;
+  averageDailyChange: number;
+}
+
 // Utility Types
 export type PaymentMethod =
   | "cash"

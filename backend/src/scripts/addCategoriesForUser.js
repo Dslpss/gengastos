@@ -6,11 +6,11 @@ dotenv.config();
 
 // Configuração do banco usando as credenciais fornecidas
 const pool = new Pool({
-  host: "aws-0-sa-east-1.pooler.supabase.com",
+  host: process.env.DB_HOST || "your-db-host",
   port: 6543,
   database: "postgres",
-  user: "postgres.wgfpxpgwwwrouizgpgfi",
-  password: "Flamengo.019",
+  user: process.env.DB_USER || "your-db-user",
+  password: process.env.DB_PASSWORD || "your-db-password",
   ssl: {
     rejectUnauthorized: false,
   },

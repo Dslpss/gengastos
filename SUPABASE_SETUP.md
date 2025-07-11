@@ -25,17 +25,17 @@ PORT=3001
 NODE_ENV=development
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_KEY=your-service-role-key
-DATABASE_URL=postgresql://postgres.wgfpxpgwwwrouizgpgfi:Flamengo.019@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
-DB_HOST=aws-0-sa-east-1.pooler.supabase.com
+DATABASE_URL=postgresql://[USER]:[PASSWORD]@[HOST]:[PORT]/[DATABASE]
+DB_HOST=[YOUR_DB_HOST]
 DB_PORT=6543
 DB_NAME=postgres
-DB_USER=postgres.wgfpxpgwwwrouizgpgfi
-DB_PASSWORD=Flamengo.019
+DB_USER=[YOUR_DB_USER]
+DB_PASSWORD=[YOUR_DB_PASSWORD]
 CORS_ORIGIN=http://localhost:3000
 JWT_SECRET=your_jwt_secret_key
 ```
 
-**Importante**: A senha do banco já está configurada como `Flamengo.019`.
+**Importante**: Configure suas credenciais de banco através do Supabase Dashboard.
 
 ### 3. Obter as Chaves do Supabase
 
@@ -58,14 +58,14 @@ Pool Mode: transaction
 **URL de Conexão Completa**:
 
 ```
-postgresql://postgres.wgfpxpgwwwrouizgpgfi:Flamengo.019@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
+postgresql://[USER]:[PASSWORD]@[HOST]:[PORT]/[DATABASE]
 ```
 
 **Para usar essa conexão**:
 
-1. A senha já está configurada como `Flamengo.019`
+1. Configure sua senha no Supabase Dashboard
 2. Copie essa URL para a variável `DATABASE_URL` no arquivo `.env`
-3. As outras credenciais também já estão configuradas
+3. Configure as outras credenciais nos arquivos de ambiente
 
 ### 4. Executar o Schema do Banco
 

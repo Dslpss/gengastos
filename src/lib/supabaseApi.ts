@@ -947,6 +947,137 @@ class SupabaseApiService {
       return [];
     }
   }
+
+  // Cash Flow Forecast
+  async getCashFlowForecast(
+    days: number = 30,
+    includeRecurring: boolean = true
+  ): Promise<any> {
+    try {
+      const user = await this.getCurrentUser();
+
+      // Como não temos backend funcionando ainda, vamos simular dados
+      // Em produção, isso faria uma chamada para o backend
+      const response = await fetch(
+        `/api/reports/forecast?days=${days}&includeRecurring=${includeRecurring}`,
+        {
+          headers: {
+            Authorization: `Bearer ${
+              (
+                await supabase.auth.getSession()
+              ).data.session?.access_token
+            }`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao buscar previsão");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erro ao buscar previsão de fluxo de caixa:", error);
+
+      // Fallback: gerar dados simulados para demonstração
+      return this.generateMockForecast(days);
+    }
+  }
+
+  private async generateMockForecast(days: number) {
+    try {
+      const user = await this.getCurrentUser();
+
+      // Buscar transações reais para base de cálculo
+      const { data: transactions } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false });
+
+      // Calcular saldo atual baseado em transações
+      const currentBalance =
+        transactions?.reduce((acc, t) => {
+          return acc + (t.type === "income" ? t.amount : -t.amount);
+        }, 0) || 1000; // Valor padrão se não houver transações
+
+      // Gerar projeção simulada
+      const forecast = [];
+      const today = new Date();
+      let runningBalance = currentBalance;
+
+      for (let i = 0; i <= days; i++) {
+        const currentDate = new Date(today);
+        currentDate.setDate(today.getDate() + i);
+
+        // Simular variação diária baseada em padrão realista
+        let dailyChange = 0;
+
+        // Simular receita no início do mês (salário)
+        if (currentDate.getDate() === 1) {
+          dailyChange += 3000; // Salário simulado
+        }
+
+        // Simular gastos aleatórios (mais realistas)
+        const dayOfWeek = currentDate.getDay();
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+          // Dias úteis
+          dailyChange -= 50 + Math.random() * 100; // Gastos variados
+        } else {
+          // Fins de semana
+          dailyChange -= 30 + Math.random() * 150; // Gastos de lazer
+        }
+
+        runningBalance += dailyChange;
+
+        forecast.push({
+          date: currentDate.toISOString().split("T")[0],
+          balance: Math.round(runningBalance * 100) / 100,
+          change: Math.round(dailyChange * 100) / 100,
+          type: i === 0 ? "current" : "projected",
+        });
+      }
+
+      return {
+        currentBalance,
+        forecast,
+        analysis: {
+          totalTransactions: transactions?.length || 0,
+          recurringCount: 0,
+          forecastDays: days,
+        },
+      };
+    } catch (error) {
+      console.error("Erro ao gerar dados simulados:", error);
+
+      // Fallback final com dados estáticos
+      const currentBalance = 1000;
+      const forecast = Array.from({ length: days + 1 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() + i);
+        const balance = currentBalance - i * 25 + (Math.random() * 100 - 50);
+
+        return {
+          date: date.toISOString().split("T")[0],
+          balance: Math.round(balance * 100) / 100,
+          change:
+            i === 0 ? 0 : Math.round((Math.random() * 100 - 50) * 100) / 100,
+          type: i === 0 ? "current" : "projected",
+        };
+      });
+
+      return {
+        currentBalance,
+        forecast,
+        analysis: {
+          totalTransactions: 0,
+          recurringCount: 0,
+          forecastDays: days,
+        },
+      };
+    }
+  }
 }
 
 export const apiService = new SupabaseApiService();

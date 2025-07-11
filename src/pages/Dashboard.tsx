@@ -5,6 +5,7 @@ import { useEventBus, EVENTS } from "../lib/eventBus";
 import { useNotifications } from "../hooks/useNotifications";
 import { TrendingUp, TrendingDown, DollarSign, Activity } from "lucide-react";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
+import CashFlowForecast from "../components/CashFlowForecast";
 import toast from "react-hot-toast";
 
 interface Transaction {
@@ -556,23 +557,23 @@ export default function Dashboard() {
               recentTransactions.map((transaction, index) => (
                 <div
                   key={transaction.id}
-                  className="flex items-center justify-between p-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 rounded-xl transition-all duration-300 border border-gray-100 hover:border-blue-200 hover:shadow-md"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 rounded-xl transition-all duration-300 border border-gray-100 hover:border-blue-200 hover:shadow-md space-y-3 sm:space-y-0"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-3 min-w-0 flex-1">
                     <div
-                      className="w-4 h-4 rounded-full ring-2 ring-white shadow-lg"
+                      className="w-4 h-4 flex-shrink-0 rounded-full ring-2 ring-white shadow-lg"
                       style={{
                         backgroundColor:
                           transaction.category?.color || "#CBD5E0",
                       }}
                     />
-                    <div>
-                      <p className="font-semibold text-gray-900 text-lg">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-gray-900 text-base sm:text-lg truncate">
                         {transaction.description}
                       </p>
-                      <div className="flex items-center space-x-3 mt-1">
-                        <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 mt-1 space-y-1 sm:space-y-0">
+                        <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full inline-block w-fit">
                           {transaction.category?.name || "Sem categoria"}
                         </span>
                         <span className="text-sm text-gray-500">
@@ -583,9 +584,9 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center sm:text-right space-x-2 sm:space-x-0">
                     <span
-                      className={`font-bold text-xl ${
+                      className={`font-bold text-lg sm:text-xl ${
                         transaction.type === "income"
                           ? "text-green-600"
                           : "text-red-600"
@@ -595,7 +596,7 @@ export default function Dashboard() {
                       {Math.abs(transaction.amount).toFixed(2)}
                     </span>
                     <div
-                      className={`text-xs font-medium mt-1 px-2 py-1 rounded-full inline-block ${
+                      className={`text-xs font-medium px-2 py-1 rounded-full ${
                         transaction.type === "income"
                           ? "bg-green-100 text-green-700"
                           : "bg-red-100 text-red-700"
@@ -608,6 +609,11 @@ export default function Dashboard() {
               ))
             )}
           </div>
+        </div>
+
+        {/* Cash Flow Forecast Section */}
+        <div className="lg:col-span-3">
+          <CashFlowForecast className="animate-slide-up" />
         </div>
       </div>
     </div>

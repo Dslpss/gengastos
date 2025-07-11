@@ -7,17 +7,17 @@ O seu projeto Supabase está configurado com as seguintes informações de conex
 ### Informações de Conexão
 
 ```
-Host: aws-0-sa-east-1.pooler.supabase.com
+Host: [YOUR_DB_HOST]
 Port: 6543
 Database: postgres
-User: postgres.wgfpxpgwwwrouizgpgfi
+User: [YOUR_DB_USER]
 Pool Mode: transaction
 ```
 
 ### String de Conexão
 
 ```
-postgresql://postgres.wgfpxpgwwwrouizgpgfi:Flamengo.019@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
+postgresql://[USER]:[PASSWORD]@[HOST]:[PORT]/[DATABASE]
 ```
 
 ## 🔐 Configuração das Variáveis de Ambiente
@@ -26,12 +26,12 @@ postgresql://postgres.wgfpxpgwwwrouizgpgfi:Flamengo.019@aws-0-sa-east-1.pooler.s
 
 ```env
 # Database PostgreSQL
-DATABASE_URL=postgresql://postgres.wgfpxpgwwwrouizgpgfi:Flamengo.019@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
-DB_HOST=aws-0-sa-east-1.pooler.supabase.com
+DATABASE_URL=postgresql://[USER]:[PASSWORD]@[HOST]:[PORT]/[DATABASE]
+DB_HOST=[YOUR_DB_HOST]
 DB_PORT=6543
 DB_NAME=postgres
-DB_USER=postgres.wgfpxpgwwwrouizgpgfi
-DB_PASSWORD=Flamengo.019
+DB_USER=[YOUR_DB_USER]
+DB_PASSWORD=[YOUR_DB_PASSWORD]
 
 # Supabase API
 SUPABASE_URL=https://your-project.supabase.co
@@ -87,16 +87,16 @@ Você deve ver no console:
 ### Conexão via Linha de Comando
 
 ```bash
-psql "postgresql://postgres.wgfpxpgwwwrouizgpgfi:Flamengo.019@aws-0-sa-east-1.pooler.supabase.com:6543/postgres"
+psql "postgresql://[USER]:[PASSWORD]@[HOST]:[PORT]/[DATABASE]"
 ```
 
 ### Conexão via DBeaver/pgAdmin
 
-- **Host**: aws-0-sa-east-1.pooler.supabase.com
+- **Host**: [YOUR_DB_HOST]
 - **Port**: 6543
 - **Database**: postgres
-- **User**: postgres.wgfpxpgwwwrouizgpgfi
-- **Password**: Flamengo.019
+- **User**: [YOUR_DB_USER]
+- **Password**: [YOUR_DB_PASSWORD]
 - **SSL**: Enabled
 
 ## 📊 Estrutura do Banco
@@ -202,7 +202,7 @@ O sistema registra todas as queries executadas com:
 ### Via pg_dump
 
 ```bash
-pg_dump "postgresql://postgres.wgfpxpgwwwrouizgpgfi:Flamengo.019@aws-0-sa-east-1.pooler.supabase.com:6543/postgres" > backup.sql
+pg_dump "postgresql://[USER]:[PASSWORD]@[HOST]:[PORT]/[DATABASE]" > backup.sql
 ```
 
 ---

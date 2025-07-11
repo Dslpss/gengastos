@@ -12,10 +12,10 @@ export const config = {
   },
   database: {
     url: process.env["DATABASE_URL"] || "",
-    host: process.env["DB_HOST"] || "aws-0-sa-east-1.pooler.supabase.com",
+    host: process.env["DB_HOST"] || "your-db-host",
     port: parseInt(process.env["DB_PORT"] || "6543"),
     name: process.env["DB_NAME"] || "postgres",
-    user: process.env["DB_USER"] || "postgres.wgfpxpgwwwrouizgpgfi",
+    user: process.env["DB_USER"] || "your-db-user",
     password: process.env["DB_PASSWORD"] || "",
   },
   jwt: {
