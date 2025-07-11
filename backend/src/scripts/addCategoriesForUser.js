@@ -4,13 +4,13 @@ import pkg from "pg";
 const { Pool } = pkg;
 dotenv.config();
 
-// Configuração do banco usando as credenciais fornecidas
+// Configuração do banco usando variáveis de ambiente
 const pool = new Pool({
-  host: process.env.DB_HOST || "your-db-host",
-  port: 6543,
-  database: "postgres",
-  user: process.env.DB_USER || "your-db-user",
-  password: process.env.DB_PASSWORD || "your-db-password",
+  host: process.env.DB_HOST || "aws-0-sa-east-1.pooler.supabase.com",
+  port: parseInt(process.env.DB_PORT) || 6543,
+  database: process.env.DB_NAME || "postgres",
+  user: process.env.DB_USER || "postgres.wgfpxpgwwwrouizgpgfi",
+  password: process.env.DB_PASSWORD || "Flamengo.019",
   ssl: {
     rejectUnauthorized: false,
   },

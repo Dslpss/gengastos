@@ -12,11 +12,11 @@ export const config = {
   },
   database: {
     url: process.env["DATABASE_URL"] || "",
-    host: process.env["DB_HOST"] || "your-db-host",
+    host: process.env["DB_HOST"] || "aws-0-sa-east-1.pooler.supabase.com",
     port: parseInt(process.env["DB_PORT"] || "6543"),
     name: process.env["DB_NAME"] || "postgres",
-    user: process.env["DB_USER"] || "your-db-user",
-    password: process.env["DB_PASSWORD"] || "",
+    user: process.env["DB_USER"] || "postgres.wgfpxpgwwwrouizgpgfi",
+    password: process.env["DB_PASSWORD"] || "Flamengo.019",
   },
   jwt: {
     secret: process.env["JWT_SECRET"] || "your-secret-key",

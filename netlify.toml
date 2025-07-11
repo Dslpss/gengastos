@@ -5,7 +5,7 @@
 [build.environment]
   VITE_API_URL = "https://gengastos.onrender.com"
   VITE_SUPABASE_URL = "https://wgfpxpgwwwrouizgpgfi.supabase.co"
-  # VITE_SUPABASE_ANON_KEY será configurada via variáveis de ambiente do Netlify
+  # VITE_SUPABASE_ANON_KEY será configurada via Dashboard do Netlify
 
 [[redirects]]
   from = "/api/*"

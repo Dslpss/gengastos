@@ -8,7 +8,9 @@
     "dev": "nodemon --exec \"node --loader ts-node/esm\" src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "db:setup": "node src/scripts/setupDatabase.js"
+    "db:setup": "node src/scripts/setupDatabase.js",
+    "env:check": "node src/scripts/checkEnv.js",
+    "test:connection": "npm run env:check && npm run db:setup"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
