@@ -1,11 +1,17 @@
 import React from "react";
 import { useNotificationStore } from "../../stores/notificationStore";
-import { X, Bell } from "lucide-react";
+import { X, Bell, Trash2, CheckCheck } from "lucide-react";
 
 const NotificationPanel: React.FC = () => {
-  const { notifications, markAsRead, clearNotifications, unreadCount } =
-    useNotificationStore();
+  const {
+    notifications,
+    markAsRead,
+    markAllAsRead,
+    clearNotifications,
+    unreadCount,
+  } = useNotificationStore();
   const [open, setOpen] = React.useState(false);
+  const [showClearConfirm, setShowClearConfirm] = React.useState(false);
   const panelRef = React.useRef<HTMLDivElement>(null);
 
   // Fecha o painel ao clicar fora
@@ -94,13 +100,56 @@ const NotificationPanel: React.FC = () => {
                 </span>
               )}
             </div>
-            <button
-              className="p-1.5 hover:bg-white hover:bg-opacity-60 rounded-lg transition-colors duration-200"
-              onClick={() => setOpen(false)}
-              aria-label="Fechar"
-            >
-              <X className="w-4 h-4 text-gray-600" />
-            </button>
+            <div className="flex items-center gap-1">
+              {notifications.length > 0 && (
+                <>
+                  {unreadCount > 0 && (
+                    <button
+                      className="p-1.5 hover:bg-green-100 rounded-lg transition-colors duration-200 text-green-600 hover:text-green-700"
+                      onClick={() => {
+                        markAllAsRead();
+                      }}
+                      title="Marcar todas como lidas"
+                      aria-label="Marcar todas como lidas"
+                    >
+                      <CheckCheck className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (showClearConfirm) {
+                        clearNotifications();
+                        setShowClearConfirm(false);
+                      } else {
+                        setShowClearConfirm(true);
+                        // Auto-cancelar após 3 segundos
+                        setTimeout(() => setShowClearConfirm(false), 3000);
+                      }
+                    }}
+                    title={
+                      showClearConfirm
+                        ? "Clique novamente para confirmar"
+                        : "Limpar todas as notificações"
+                    }
+                    aria-label="Limpar todas"
+                    className={`p-1.5 rounded-lg transition-colors duration-200 ${
+                      showClearConfirm
+                        ? "bg-red-100 text-red-700 hover:bg-red-200"
+                        : "hover:bg-red-100 text-red-600 hover:text-red-700"
+                    }`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+              <button
+                className="p-1.5 hover:bg-white hover:bg-opacity-60 rounded-lg transition-colors duration-200"
+                onClick={() => setOpen(false)}
+                aria-label="Fechar"
+              >
+                <X className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
           </div>
           <div className="max-h-80 overflow-y-auto divide-y scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {notifications.length === 0 ? (

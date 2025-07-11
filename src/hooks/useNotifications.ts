@@ -51,8 +51,10 @@ export const useNotifications = () => {
 
       alerts.forEach((alert) => {
         // Criar um ID único baseado no tipo e dados da notificação
-        const notificationKey = `${alert.type}-${alert.title}-${JSON.stringify(alert.data)}`;
-        
+        const notificationKey = `${alert.type}-${alert.title}-${JSON.stringify(
+          alert.data
+        )}`;
+
         // Só adicionar se não foi mostrada recentemente
         if (!shownNotifications.current.has(notificationKey)) {
           addNotification({
@@ -65,11 +67,11 @@ export const useNotifications = () => {
             icon: alert.icon,
             data: alert.data,
           });
-          
+
           // Marcar como mostrada
           shownNotifications.current.add(notificationKey);
           newAlertsCount++;
-          
+
           // Limpar após 5 minutos para permitir notificações futuras
           setTimeout(() => {
             shownNotifications.current.delete(notificationKey);
@@ -77,7 +79,9 @@ export const useNotifications = () => {
         }
       });
 
-      console.log(`🔔 ${newAlertsCount} notificações inteligentes novas verificadas`);
+      console.log(
+        `🔔 ${newAlertsCount} notificações inteligentes novas verificadas`
+      );
       return newAlertsCount; // Retorna quantas notificações novas foram criadas
     } catch (error) {
       console.error("Erro ao verificar notificações inteligentes:", error);

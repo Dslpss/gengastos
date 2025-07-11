@@ -22,6 +22,7 @@ interface NotificationStore {
   unreadCount: number;
   addNotification: (notification: Notification) => void;
   markAsRead: (id: string) => void;
+  markAllAsRead: () => void;
   clearNotifications: () => void;
 }
 
@@ -44,6 +45,17 @@ export const useNotificationStore = create<NotificationStore>((set) => ({
       return {
         notifications: updatedNotifications,
         unreadCount: updatedNotifications.filter((n) => !n.read).length,
+      };
+    }),
+  markAllAsRead: () =>
+    set((state) => {
+      const updatedNotifications = state.notifications.map((n) => ({
+        ...n,
+        read: true,
+      }));
+      return {
+        notifications: updatedNotifications,
+        unreadCount: 0,
       };
     }),
   clearNotifications: () => set({ notifications: [], unreadCount: 0 }),
