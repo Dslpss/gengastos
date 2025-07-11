@@ -3,13 +3,13 @@
   publish = "dist"
 
 [build.environment]
-  VITE_API_URL = "https://seu-backend.onrender.com"
-  VITE_SUPABASE_URL = "https://xxxx.supabase.co"
-  VITE_SUPABASE_ANON_KEY = "xxxxxx"
+  VITE_API_URL = "https://gengastos.onrender.com"
+  VITE_SUPABASE_URL = "https://wgfpxpgwwwrouizgpgfi.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndnZnB4cGd3d3dyb3VpemdwZ2ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2NDQ5NDQsImV4cCI6MjA2NzIyMDk0NH0.OrEvodQ8A8Wmlb04pweY4QUlZIKLkynyuHOVLOA7gME"
 
 [[redirects]]
   from = "/api/*"
-  to = "https://seu-backend.onrender.com/api/:splat"
+  to = "https://gengastos.onrender.com/api/:splat"
   status = 200
 
 [[redirects]]
