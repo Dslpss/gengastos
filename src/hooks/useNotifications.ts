@@ -1,8 +1,10 @@
+import { useCallback, useRef } from "react";
 import { useNotificationStore } from "../stores/notificationStore";
 import { apiService } from "../lib/supabaseApi";
 
 export const useNotifications = () => {
   const { addNotification } = useNotificationStore();
+  const shownNotifications = useRef(new Set<string>());
 
   const generateId = () => crypto.randomUUID();
 
@@ -42,30 +44,46 @@ export const useNotifications = () => {
   };
 
   // Nova função principal que verifica TODAS as notificações baseadas no banco
-  const checkAllSmartNotifications = async () => {
+  const checkAllSmartNotifications = useCallback(async () => {
     try {
       const alerts = await apiService.checkAllNotifications();
+      let newAlertsCount = 0;
 
       alerts.forEach((alert) => {
-        addNotification({
-          id: generateId(),
-          type: alert.type,
-          title: alert.title,
-          message: alert.message,
-          timestamp: new Date().toISOString(),
-          read: false,
-          icon: alert.icon,
-          data: alert.data,
-        });
+        // Criar um ID único baseado no tipo e dados da notificação
+        const notificationKey = `${alert.type}-${alert.title}-${JSON.stringify(alert.data)}`;
+        
+        // Só adicionar se não foi mostrada recentemente
+        if (!shownNotifications.current.has(notificationKey)) {
+          addNotification({
+            id: generateId(),
+            type: alert.type,
+            title: alert.title,
+            message: alert.message,
+            timestamp: new Date().toISOString(),
+            read: false,
+            icon: alert.icon,
+            data: alert.data,
+          });
+          
+          // Marcar como mostrada
+          shownNotifications.current.add(notificationKey);
+          newAlertsCount++;
+          
+          // Limpar após 5 minutos para permitir notificações futuras
+          setTimeout(() => {
+            shownNotifications.current.delete(notificationKey);
+          }, 5 * 60 * 1000);
+        }
       });
 
-      console.log(`🔔 ${alerts.length} notificações inteligentes verificadas`);
-      return alerts.length; // Retorna quantas notificações foram criadas
+      console.log(`🔔 ${newAlertsCount} notificações inteligentes novas verificadas`);
+      return newAlertsCount; // Retorna quantas notificações novas foram criadas
     } catch (error) {
       console.error("Erro ao verificar notificações inteligentes:", error);
       return 0;
     }
-  };
+  }, [addNotification]);
 
   // Função para verificar apenas saldo baixo (com dados reais)
   const checkLowBalanceFromDB = async () => {

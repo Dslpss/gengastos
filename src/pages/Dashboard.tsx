@@ -257,28 +257,51 @@ export default function Dashboard() {
 
   // Verificar notificações inteligentes após carregar dados
   useEffect(() => {
+    let mounted = true;
+    let notificationTimeout: NodeJS.Timeout;
+
     const checkSmartNotifications = async () => {
-      // Só verificar se temos dados carregados
-      if (!loading && !salaryLoading && userSettings) {
+      // Só verificar se temos dados carregados e o componente ainda está montado
+      if (!loading && !salaryLoading && userSettings && mounted) {
         console.log(
           "🔍 Verificando notificações inteligentes baseadas no banco..."
         );
 
-        // Verificar TODAS as notificações baseadas no banco de dados
-        const alertCount = await checkAllSmartNotifications();
+        try {
+          // Verificar TODAS as notificações baseadas no banco de dados
+          const alertCount = await checkAllSmartNotifications();
 
-        if (alertCount > 0) {
-          toast.success(
-            `${alertCount} notificação(ões) importante(s) detectada(s)!`
-          );
-        } else {
-          console.log("✅ Nenhuma notificação pendente");
+          if (mounted && alertCount > 0) {
+            toast.success(
+              `${alertCount} notificação(ões) importante(s) detectada(s)!`
+            );
+          } else if (mounted) {
+            console.log("✅ Nenhuma notificação pendente");
+          }
+        } catch (error) {
+          console.error("Erro ao verificar notificações:", error);
         }
       }
     };
 
-    checkSmartNotifications();
-  }, [loading, salaryLoading, userSettings, checkAllSmartNotifications]);
+    // Executar a verificação apenas uma vez quando os dados estiverem prontos
+    if (!loading && !salaryLoading && userSettings) {
+      // Delay pequeno para evitar múltiplas execuções
+      notificationTimeout = setTimeout(() => {
+        if (mounted) {
+          checkSmartNotifications();
+        }
+      }, 1000);
+    }
+
+    // Cleanup
+    return () => {
+      mounted = false;
+      if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+      }
+    };
+  }, [loading, salaryLoading, userSettings]); // Removido checkAllSmartNotifications das dependências
 
   if (loading || salaryLoading) {
     return (
