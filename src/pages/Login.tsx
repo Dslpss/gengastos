@@ -113,33 +113,99 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-green-100 relative overflow-hidden">
+      {/* SVG decorativo de moedas e gráfico no fundo - canto inferior direito */}
+      <svg
+        className="absolute right-0 bottom-0 w-[420px] h-[320px] opacity-30 pointer-events-none select-none"
+        viewBox="0 0 420 320"
+        fill="none"
+      >
+        <ellipse cx="350" cy="270" rx="60" ry="30" fill="#fde047" />
+        <ellipse cx="270" cy="300" rx="30" ry="15" fill="#fbbf24" />
+        <ellipse cx="390" cy="310" rx="20" ry="10" fill="#facc15" />
+        <rect x="60" y="260" width="40" height="20" rx="6" fill="#fde047" />
+        <rect x="120" y="240" width="40" height="40" rx="8" fill="#fde047" />
+        <path
+          d="M80 280 L140 220 L200 260 L260 160 L320 240"
+          stroke="#22c55e"
+          strokeWidth="8"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="80" cy="280" r="10" fill="#22c55e" />
+        <circle cx="140" cy="220" r="10" fill="#22c55e" />
+        <circle cx="200" cy="260" r="10" fill="#22c55e" />
+        <circle cx="260" cy="160" r="10" fill="#22c55e" />
+        <circle cx="320" cy="240" r="10" fill="#22c55e" />
+      </svg>
+      {/* SVG decorativo de gráfico no fundo - canto superior esquerdo */}
+      <svg
+        className="absolute left-0 top-0 w-[220px] h-[120px] opacity-20 pointer-events-none select-none"
+        viewBox="0 0 220 120"
+        fill="none"
+      >
+        <ellipse cx="60" cy="40" rx="40" ry="15" fill="#fbbf24" />
+        <ellipse cx="120" cy="60" rx="20" ry="8" fill="#fde047" />
+        <path
+          d="M20 100 L60 60 L100 80 L140 30 L180 70"
+          stroke="#22c55e"
+          strokeWidth="6"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="20" cy="100" r="7" fill="#22c55e" />
+        <circle cx="60" cy="60" r="7" fill="#22c55e" />
+        <circle cx="100" cy="80" r="7" fill="#22c55e" />
+        <circle cx="140" cy="30" r="7" fill="#22c55e" />
+        <circle cx="180" cy="70" r="7" fill="#22c55e" />
+      </svg>
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 border border-gray-100 relative z-10">
+        <div className="flex flex-col items-center mb-6">
+          <div className="bg-gradient-to-br from-green-500 to-yellow-400 rounded-full p-3 mb-2 shadow-md">
+            {/* Ícone de maleta de dinheiro (administração financeira) */}
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+              <rect
+                x="3"
+                y="7"
+                width="18"
+                height="13"
+                rx="3"
+                fill="#fff"
+                stroke="#22c55e"
+                strokeWidth="2"
+              />
+              <rect x="7" y="2" width="10" height="5" rx="2" fill="#22c55e" />
+              <rect x="10" y="11" width="4" height="2" rx="1" fill="#fde047" />
+              <path
+                d="M7 7V4a3 3 0 013-3h4a3 3 0 013 3v3"
+                stroke="#22c55e"
+                strokeWidth="2"
+              />
+              <circle cx="12" cy="16" r="2" fill="#22c55e" />
+              <path
+                d="M12 15v2m0 0h1m-1 0h-1"
+                stroke="#fff"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-extrabold text-gray-900">
             {isSignUp ? "Criar conta" : "Fazer login"}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             GenGastos - Controle Financeiro Pessoal
           </p>
         </div>
-
-        {/* Mensagem de boas-vindas */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="text-center">
-            <h3 className="text-sm font-medium text-blue-800">
-              💰 Bem-vindo ao GenGastos
-            </h3>
-            <p className="text-sm text-blue-700 mt-1">
-              Seu sistema de controle financeiro pessoal está pronto para uso!
-            </p>
-          </div>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="form-label">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email
               </label>
               <input
@@ -147,15 +213,17 @@ export default function Login() {
                 name="email"
                 type="email"
                 required
-                className="form-input"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                 placeholder="Digite seu email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-
             <div>
-              <label htmlFor="password" className="form-label">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Senha
               </label>
               <input
@@ -163,7 +231,7 @@ export default function Login() {
                 name="password"
                 type="password"
                 required
-                className="form-input"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                 placeholder="Digite sua senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -180,10 +248,12 @@ export default function Login() {
                 </div>
               )}
             </div>
-
             {isSignUp && (
               <div>
-                <label htmlFor="confirmPassword" className="form-label">
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Confirmar Senha
                 </label>
                 <input
@@ -191,7 +261,7 @@ export default function Login() {
                   name="confirmPassword"
                   type="password"
                   required
-                  className={`form-input ${
+                  className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 ${
                     confirmPassword && password !== confirmPassword
                       ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                       : confirmPassword && password === confirmPassword
@@ -215,36 +285,30 @@ export default function Login() {
               </div>
             )}
           </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-            >
-              {isLoading ? (
-                <LoadingSpinner size="small" />
-              ) : isSignUp ? (
-                "Criar conta"
-              ) : (
-                "Entrar"
-              )}
-            </button>
-          </div>
-
-          <div className="text-center">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-primary-600 to-green-500 hover:from-primary-700 hover:to-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-all duration-200"
+          >
+            {isLoading ? (
+              <LoadingSpinner size="small" />
+            ) : isSignUp ? (
+              "Criar conta"
+            ) : (
+              "Entrar"
+            )}
+          </button>
+          <div className="text-center mt-4">
             <button
               type="button"
               onClick={() => setIsSignUp(!isSignUp)}
-              className="text-primary-600 hover:text-primary-500"
+              className="text-primary-600 hover:text-primary-500 underline"
             >
               {isSignUp
                 ? "Já tem uma conta? Faça login"
                 : "Não tem uma conta? Cadastre-se"}
             </button>
           </div>
-
-          {/* Botão de ajuda para erro de email */}
           {hasEmailError && (
             <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <div className="flex items-start">
@@ -277,7 +341,6 @@ export default function Login() {
                     >
                       ✨ Criar Nova Conta
                     </button>
-
                     <button
                       type="button"
                       onClick={() => {
@@ -288,7 +351,7 @@ export default function Login() {
                       }}
                       className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                     >
-                      � Criar Nova Conta
+                      Voltar
                     </button>
                   </div>
                 </div>
