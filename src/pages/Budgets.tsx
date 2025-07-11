@@ -369,7 +369,7 @@ export default function Budgets() {
 
               {/* Linhas da Lista - Desktop */}
               <div className="hidden md:block divide-y divide-gray-100">
-                {budgets.map((budget, index) => {
+                {budgets.map((budget) => {
                   const budgetStatus = getBudgetStatus(budget);
                   const percentage =
                     ((budget.spent || 0) / budget.amount) * 100;
@@ -378,9 +378,7 @@ export default function Budgets() {
                   return (
                     <div
                       key={budget.id}
-                      className={`px-6 py-4 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-all duration-200 ${
-                        index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
-                      }`}
+                      className="px-6 py-4 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-all duration-200 bg-white"
                     >
                       <div className="grid grid-cols-5 gap-4 items-center">
                         {/* Categoria */}
@@ -474,7 +472,7 @@ export default function Budgets() {
 
               {/* Lista Mobile - Cards */}
               <div className="md:hidden p-4 space-y-4">
-                {budgets.map((budget, index) => {
+                {budgets.map((budget) => {
                   const budgetStatus = getBudgetStatus(budget);
                   const percentage =
                     ((budget.spent || 0) / budget.amount) * 100;
