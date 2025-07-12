@@ -6,6 +6,7 @@ import { useNotifications } from "../hooks/useNotifications";
 import { TrendingUp, TrendingDown, DollarSign, Activity } from "lucide-react";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import CashFlowForecast from "../components/CashFlowForecast";
+import PendingRecurringNotifications from "../components/PendingRecurringNotifications";
 import toast from "react-hot-toast";
 
 interface Transaction {
@@ -367,6 +368,9 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 space-y-8 pb-8">
+        {/* Notificações de Transações Recorrentes Pendentes */}
+        <PendingRecurringNotifications />
+
         {/* Resumo de Saldos */}
         {userSettings &&
           (userSettings.total_extra_balance > 0 || userSettings.salary > 0) && (

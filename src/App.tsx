@@ -13,6 +13,7 @@ import Layout from "./components/layout/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
+import RecurringTransactions from "./pages/RecurringTransactions";
 import Categories from "./pages/Categories";
 import Budgets from "./pages/Budgets";
 import Reports from "./pages/Reports";
@@ -117,6 +118,7 @@ function App() {
           >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/transactions" element={<Transactions />} />
+            <Route path="/recurring" element={<RecurringTransactions />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/budgets" element={<Budgets />} />
             <Route path="/reports" element={<Reports />} />

@@ -39,6 +39,20 @@ export interface Budget {
   category?: Category;
 }
 
+export interface RecurringTransaction {
+  id: string;
+  user_id: string;
+  category_id: string;
+  amount: number;
+  description: string | null;
+  frequency: "weekly" | "monthly" | "yearly";
+  next_date: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  category?: Category;
+}
+
 export interface UserSettings {
   id: string;
   user_id: string;
@@ -954,8 +968,6 @@ class SupabaseApiService {
     includeRecurring: boolean = true
   ): Promise<any> {
     try {
-      const user = await this.getCurrentUser();
-
       // Como não temos backend funcionando ainda, vamos simular dados
       // Em produção, isso faria uma chamada para o backend
       const response = await fetch(
@@ -1077,6 +1089,175 @@ class SupabaseApiService {
         },
       };
     }
+  }
+
+  // Recurring Transactions
+  async getRecurringTransactions(): Promise<RecurringTransaction[]> {
+    const { data, error } = await supabase
+      .from("recurring_transactions")
+      .select(
+        `
+        *,
+        category:categories(*)
+      `
+      )
+      .eq("user_id", (await this.getCurrentUser()).id)
+      .order("created_at", { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  async createRecurringTransaction(recurringData: {
+    category_id: string;
+    amount: number;
+    description?: string;
+    frequency: "weekly" | "monthly" | "yearly";
+    next_date: string;
+  }): Promise<RecurringTransaction> {
+    const user = await this.getCurrentUser();
+
+    const { data, error } = await supabase
+      .from("recurring_transactions")
+      .insert([
+        {
+          ...recurringData,
+          user_id: user.id,
+          description: recurringData.description || null,
+        },
+      ])
+      .select(
+        `
+        *,
+        category:categories(*)
+      `
+      )
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async updateRecurringTransaction(
+    id: string,
+    recurringData: {
+      category_id?: string;
+      amount?: number;
+      description?: string;
+      frequency?: "weekly" | "monthly" | "yearly";
+      next_date?: string;
+      is_active?: boolean;
+    }
+  ): Promise<RecurringTransaction> {
+    const user = await this.getCurrentUser();
+
+    const { data, error } = await supabase
+      .from("recurring_transactions")
+      .update({
+        ...recurringData,
+        description: recurringData.description || null,
+      })
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select(
+        `
+        *,
+        category:categories(*)
+      `
+      )
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async deleteRecurringTransaction(id: string): Promise<void> {
+    const user = await this.getCurrentUser();
+
+    const { error } = await supabase
+      .from("recurring_transactions")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) throw new Error(error.message);
+  }
+
+  async executeRecurringTransaction(id: string): Promise<{
+    transaction: Transaction;
+    nextDate: string;
+  }> {
+    // Buscar a transação recorrente
+    const { data: recurring, error: recurringError } = await supabase
+      .from("recurring_transactions")
+      .select(
+        `
+        *,
+        category:categories(*)
+      `
+      )
+      .eq("id", id)
+      .eq("user_id", (await this.getCurrentUser()).id)
+      .eq("is_active", true)
+      .single();
+
+    if (recurringError || !recurring) {
+      throw new Error("Transação recorrente não encontrada ou inativa");
+    }
+
+    // Criar a transação
+    const transaction = await this.createTransaction({
+      category_id: recurring.category_id,
+      amount: recurring.amount,
+      description: recurring.description || "Transação recorrente",
+      date: new Date().toISOString().split("T")[0],
+      type: recurring.category.type,
+      payment_method: "transfer", // Método padrão para transações recorrentes
+    });
+
+    // Calcular próxima data
+    let nextDate = new Date(recurring.next_date);
+    switch (recurring.frequency) {
+      case "weekly":
+        nextDate.setDate(nextDate.getDate() + 7);
+        break;
+      case "monthly":
+        nextDate.setMonth(nextDate.getMonth() + 1);
+        break;
+      case "yearly":
+        nextDate.setFullYear(nextDate.getFullYear() + 1);
+        break;
+    }
+
+    // Atualizar próxima data da transação recorrente
+    await this.updateRecurringTransaction(id, {
+      next_date: nextDate.toISOString().split("T")[0],
+    });
+
+    return {
+      transaction,
+      nextDate: nextDate.toISOString().split("T")[0],
+    };
+  }
+
+  async getPendingRecurringTransactions(): Promise<RecurringTransaction[]> {
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data, error } = await supabase
+      .from("recurring_transactions")
+      .select(
+        `
+        *,
+        category:categories(*)
+      `
+      )
+      .eq("user_id", (await this.getCurrentUser()).id)
+      .eq("is_active", true)
+      .lte("next_date", today)
+      .order("next_date", { ascending: true });
+
+    if (error) throw new Error(error.message);
+    return data || [];
   }
 }
 

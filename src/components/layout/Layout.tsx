@@ -12,6 +12,7 @@ import {
   X,
   DollarSign,
   User,
+  RefreshCw,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuthStore } from "../../stores/authStore";
@@ -29,6 +30,7 @@ const Layout = ({ children }: LayoutProps) => {
   const navigation = [
     { name: "Dashboard", href: "/", icon: Home },
     { name: "Transações", href: "/transactions", icon: CreditCard },
+    { name: "Recorrentes", href: "/recurring", icon: RefreshCw },
     { name: "Categorias", href: "/categories", icon: Tag },
     { name: "Orçamentos", href: "/budgets", icon: Target },
     { name: "Relatórios", href: "/reports", icon: BarChart3 },

@@ -9,6 +9,7 @@ export const config = {
   supabase: {
     url: process.env.SUPABASE_URL || "",
     serviceKey: process.env.SUPABASE_SERVICE_KEY || "",
+    anonKey: process.env.SUPABASE_ANON_KEY || "",
   },
   database: {
     url: process.env["DATABASE_URL"] || "",
@@ -24,7 +25,12 @@ export const config = {
 } as const;
 
 // Validate required environment variables
-const requiredEnvVars = ["SUPABASE_URL", "SUPABASE_SERVICE_KEY", "DB_PASSWORD"];
+const requiredEnvVars = [
+  "SUPABASE_URL",
+  "SUPABASE_SERVICE_KEY",
+  "SUPABASE_ANON_KEY",
+  "DB_PASSWORD",
+];
 
 requiredEnvVars.forEach((envVar) => {
   if (!process.env[envVar]) {

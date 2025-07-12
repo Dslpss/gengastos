@@ -1,8 +1,30 @@
 import { Router } from "express";
 import { asyncHandler } from "../middleware/errorHandler.js";
-import { supabase } from "../lib/supabase.js";
+import { supabase, supabaseAuth } from "../lib/supabase.js";
+import pool from "../lib/database.js";
 
 const router = Router();
+
+// Middleware para verificar autenticação
+const authMiddleware = async (req: any, res: any, next: any) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: "Token de autorização necessário" });
+  }
+
+  const token = authHeader.replace("Bearer ", "");
+  const {
+    data: { user },
+    error,
+  } = await supabaseAuth.auth.getUser(token);
+
+  if (error || !user) {
+    return res.status(401).json({ error: "Token inválido" });
+  }
+
+  req.user = user;
+  next();
+};
 
 // GET /api/reports/dashboard
 router.get(
@@ -34,6 +56,7 @@ router.get(
 // GET /api/reports/forecast
 router.get(
   "/forecast",
+  authMiddleware,
   asyncHandler(async (req, res) => {
     const user_id = req.user?.id;
     if (!user_id) {
@@ -48,32 +71,24 @@ router.get(
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      const { data: historicalTransactions, error: transactionsError } =
-        await supabase
-          .from("transactions")
-          .select("*")
-          .eq("user_id", user_id)
-          .gte("date", sixMonthsAgo.toISOString().split("T")[0])
-          .order("date", { ascending: true });
-
-      if (transactionsError) throw transactionsError;
+      const { rows: historicalTransactions } = await pool.query(
+        "SELECT * FROM transactions WHERE user_id = $1 AND date >= $2 ORDER BY date ASC",
+        [user_id, sixMonthsAgo.toISOString().split("T")[0]]
+      );
 
       // Buscar transações recorrentes ativas
       let recurringTransactions: any[] = [];
       if (includeRecurring) {
-        const { data: recurring, error: recurringError } = await supabase
-          .from("recurring_transactions")
-          .select("*")
-          .eq("user_id", user_id)
-          .eq("is_active", true);
-
-        if (recurringError) throw recurringError;
+        const { rows: recurring } = await pool.query(
+          "SELECT * FROM recurring_transactions WHERE user_id = $1 AND is_active = true",
+          [user_id]
+        );
         recurringTransactions = recurring || [];
       }
 
       // Calcular saldo atual
       const currentBalance =
-        historicalTransactions?.reduce((acc, transaction) => {
+        historicalTransactions?.reduce((acc: number, transaction: any) => {
           return (
             acc +
             (transaction.type === "income"

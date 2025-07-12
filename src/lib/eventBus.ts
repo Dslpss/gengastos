@@ -47,6 +47,9 @@ export const EVENTS = {
   TRANSACTION_CREATED: "transaction:created",
   TRANSACTION_UPDATED: "transaction:updated",
   TRANSACTION_DELETED: "transaction:deleted",
+  RECURRING_TRANSACTION_CREATED: "recurringTransaction:created",
+  RECURRING_TRANSACTION_UPDATED: "recurringTransaction:updated",
+  RECURRING_TRANSACTION_DELETED: "recurringTransaction:deleted",
   USER_SETTINGS_UPDATED: "userSettings:updated",
   DASHBOARD_REFRESH: "dashboard:refresh",
 } as const;

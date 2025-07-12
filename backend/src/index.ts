@@ -13,6 +13,7 @@ import categoriesRoutes from "./routes/categories.js";
 import transactionsRoutes from "./routes/transactions.js";
 import budgetsRoutes from "./routes/budgets.js";
 import reportsRoutes from "./routes/reports.js";
+import recurringRoutes from "./routes/recurring.js";
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use("/api/categories", categoriesRoutes);
 app.use("/api/transactions", transactionsRoutes);
 app.use("/api/budgets", budgetsRoutes);
 app.use("/api/reports", reportsRoutes);
+app.use("/api/recurring", recurringRoutes);
 
 // 404 handler
 app.use("*", (req, res) => {
